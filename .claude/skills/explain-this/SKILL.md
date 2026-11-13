@@ -21,8 +21,21 @@ The user names a subsystem, module, package or directory. If it is ambiguous, as
 2. Build the dependency picture: who calls whom, which modules import which. Use the language's tooling or grep; read the code to confirm what a tool reports.
 3. Check git history for scope (`git log --oneline -- <path>`, recent churn) and for any design docs, READMEs or spec files that describe intent.
 4. If Jira, Notion or Slack MCP tools are available (they may be deferred: load them with ToolSearch first), pull context on the subsystem: tickets named in branch names and commit messages, design pages, and discussion threads. Use it to learn intent, history, decisions and known issues. See "External context" below for how to use and cite it. Skip silently if no such tools exist; never ask the user to set them up.
-5. Split the subsystem into **pieces**. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 400 lines of code behind it). Prefer more, smaller pieces over fewer large ones; split a piece that would not fit the length budget in Phase 2. Order the pieces top-down: the overview and entry points first, then the components they use, then the shared leaves.
-6. Present the outline to the user: the pieces in order, with one line each and the files behind each. Mention anything you could not map (generated code, dynamic dispatch, reflection, external services). Then begin with piece 1 without waiting, unless the outline revealed something the user must decide.
+5. Split the subsystem into **pieces**. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 400 lines of code behind it). Prefer more, smaller pieces over fewer large ones; split a piece that would not fit the length budget in Phase 2. Order the pieces by architectural role, top-down: the components that carry the system's purpose first, then the components they use, then the shared leaves. Do not order by startup or call order; the entry point and wiring code (main, server setup) is explained last, as the place where the modules are assembled.
+6. Present the outline to the user: the pieces in order, with one line each and the files behind each. Mention anything you could not map (generated code, dynamic dispatch, reflection, external services). Do not begin piece 1 yet: Phase 0.5 comes first.
+
+## Phase 0.5: architecture overview, then stop
+
+The user must understand what the system is and how it is organised before any code is walked through. Present this overview before piece 1, and keep it to roughly 400 to 700 words, plus a diagram or table if it helps:
+
+1. **Purpose**: what the system is for, who uses it, and what it does not do.
+2. **Modules and services**: each major module, service or process with a one-line responsibility and the files or packages behind it. Say which are core and which are supporting.
+3. **How they fit together**: the dependency direction between modules, and the two or three main flows end to end (for example a request, a background job, a deployment of a change), at module level, naming no functions.
+4. **State and external dependencies**: where data lives (databases, files, caches, queues) and which external systems it talks to.
+5. **Process and deployment shape**: how many processes, how they are started, what runs where.
+6. **Unverified**: what you could not establish.
+
+Ground it in READMEs, design docs, package comments, configuration and the import graph, and label claims verified, inferred or unverified as in the evidence rules. Do not cite individual functions or line numbers here unless a claim depends on one; that detail belongs to the pieces. Then show the piece outline and **stop**, asking whether the user wants to adjust the outline or begin with piece 1. Do not make tool calls after the invitation.
 
 ## Phase 1: for each piece, review bottom-up first
 

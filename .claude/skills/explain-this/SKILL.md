@@ -23,6 +23,20 @@ prose at about 120 characters per line, never more than 140, so that no line has
 - Do not break inside a `file:line` reference, a code span or a URL, even if that line runs a little over.
 - Tables and code blocks are exempt, but keep table cells short; move long explanations out of a cell into the text.
 
+## Define terms at first use
+
+Never use a term the reader may not know without saying what it is, in the same sentence or the one after, the first time it
+appears in the conversation. This covers the project's own names (an "outbox", a "gate", an "actor"), design patterns (outbox,
+optimistic concurrency, CAS, lease, idempotency key) and database features (advisory lock, `SKIP LOCKED`, a view, a trigger).
+
+- Say what it physically is (a table in PostgreSQL, a goroutine, a file, an interface), what it holds or does, and why it exists,
+  in one or two lines, with a `file:line` where it is defined. Example: "The outbox is a table in PostgreSQL where each write
+  also records an event in the same transaction, so a worker can act on it later and no event is lost if the process dies."
+- Do this in the overview and the outline too, not only in the pieces. A term used in the outline is defined there.
+- Keep a running glossary of the terms already defined. Do not redefine them, and when a later piece reuses one, a short
+  reminder or a pointer to the earlier piece is enough.
+- If a term is only a name for a concrete thing, prefer the concrete thing: "the `outbox` table" over "the outbox".
+
 ## Inputs
 
 The user names a subsystem, module, package or directory. If it is ambiguous, ask once which path or entry point is meant. Ask for their level (new to the language, new to the codebase, or just new to this module) only if it is not obvious; default to an experienced engineer who has not seen this code.

@@ -11,6 +11,8 @@ The user is trying to rebuild their own understanding of code they may not have 
 
 This skill is read-only. Do not edit, format or refactor the code being explained.
 
+**The code is the primary source for every statement, at every level, including the architecture overview and the piece outline.** READMEs, design docs, specs, tickets and threads (Jira, Notion, Slack, when reachable) support and enrich an explanation: they give intent, history and a better way to say it. They never ground a claim by themselves, and nothing is presented as a conclusion before a bottom-up read of the code has produced it.
+
 ## Inputs
 
 The user names a subsystem, module, package or directory. If it is ambiguous, ask once which path or entry point is meant. Ask for their level (new to the language, new to the codebase, or just new to this module) only if it is not obvious; default to an experienced engineer who has not seen this code.
@@ -19,10 +21,25 @@ The user names a subsystem, module, package or directory. If it is ambiguous, as
 
 1. List the files in scope with sizes. Identify entry points (main, handlers, public API, exported symbols, registered routes, CLI commands), configuration, tests and docs.
 2. Build the dependency picture: who calls whom, which modules import which. Use the language's tooling or grep; read the code to confirm what a tool reports.
-3. Check git history for scope (`git log --oneline -- <path>`, recent churn) and for any design docs, READMEs or spec files that describe intent.
-4. If Jira, Notion or Slack MCP tools are available (they may be deferred: load them with ToolSearch first), pull context on the subsystem: tickets named in branch names and commit messages, design pages, and discussion threads. Use it to learn intent, history, decisions and known issues. See "External context" below for how to use and cite it. Skip silently if no such tools exist; never ask the user to set them up.
-5. Split the subsystem into **pieces**. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 400 lines of code behind it). Prefer more, smaller pieces over fewer large ones; split a piece that would not fit the length budget in Phase 2. Order the pieces by architectural role, top-down: the components that carry the system's purpose first, then the components they use, then the shared leaves. Do not order by startup or call order; the entry point and wiring code (main, server setup) is explained last, as the place where the modules are assembled.
-6. Present the outline to the user: the pieces in order, with one line each and the files behind each. Mention anything you could not map (generated code, dynamic dispatch, reflection, external services). Do not begin piece 1 yet: Phase 0.5 comes first.
+3. Check git history for scope (`git log --oneline -- <path>`, recent churn) and note any design docs, READMEs or spec files. Treat them as claims to check against the code, not as facts.
+4. If Jira, Notion or Slack MCP tools are available (they may be deferred: load them with ToolSearch first), pull context on the subsystem: tickets named in branch names and commit messages, design pages, and discussion threads. Use it to support the explanation and to find intent, history, decisions and known issues, after the code has been read (Phase 0.25). See "External context" below for how to use and cite it. Skip silently if no such tools exist; never ask the user to set them up.
+
+## Phase 0.25: bottom-up survey of the whole subsystem
+
+Before any overview or outline, read the code bottom-up across the whole scope. This is the same method as Phase 1, applied once to the entire subsystem at survey depth:
+
+1. Start at the leaves: types, schemas and migrations, constants, helpers and packages that import nothing else in scope. Read them and note what each is for, with `file:line`.
+2. Move up: for each module, read its exported surface and the bodies that matter (state changes, locking and transactions, error paths, background workers, external calls), then the callers that compose them, up to the entry points and wiring.
+3. Read the tests and the configuration as evidence of behavior.
+4. On a large subsystem, run the independent leaf packages in parallel with subagents, each told to report facts with `file:line` and to separate what it read from what it guessed. Re-read any load-bearing claim yourself before it enters the overview.
+5. Keep a ledger of claims with evidence. Only then compare against READMEs, specs and external context. Where they disagree with the code, report the disagreement; the code wins.
+
+The overview and the outline are built from this ledger, not from file names, line counts, import lists or documents.
+
+## Phase 0.3: split into pieces
+
+Split the subsystem into **pieces**, using what the survey showed. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 400 lines of code behind it). Prefer more, smaller pieces over fewer large ones; split a piece that would not fit the length budget in Phase 2. Order the pieces by architectural role, top-down: the components that carry the system's purpose first, then the components they use, then the shared leaves. Do not order by startup or call order; the entry point and wiring code (main, server setup) is explained last, as the place where the modules are assembled.
+   Present the outline to the user: the pieces in order, with one line each and the files behind each. Mention anything you could not map (generated code, dynamic dispatch, reflection, external services). Do not begin piece 1 yet: Phase 0.5 comes first.
 
 ## Phase 0.5: architecture overview, then stop
 
@@ -35,7 +52,7 @@ The user must understand what the system is and how it is organised before any c
 5. **Process and deployment shape**: how many processes, how they are started, what runs where.
 6. **Unverified**: what you could not establish.
 
-Ground it in READMEs, design docs, package comments, configuration and the import graph, and label claims verified, inferred or unverified as in the evidence rules. Do not cite individual functions or line numbers here unless a claim depends on one; that detail belongs to the pieces. Then show the piece outline and **stop**, asking whether the user wants to adjust the outline or begin with piece 1. Do not make tool calls after the invitation.
+Ground it in the code read in Phase 0.25, and label claims verified, inferred or unverified as in the evidence rules. READMEs, design docs and external context may support or sharpen a statement, labelled "Stated in <source>", and never stand in for code. A statement the survey did not confirm in code is marked unverified or left out. Cite a function or line only where a claim depends on it; the detail belongs to the pieces. Then show the piece outline and **stop**, asking whether the user wants to adjust the outline or begin with piece 1. Do not make tool calls after the invitation.
 
 ## Phase 1: for each piece, review bottom-up first
 

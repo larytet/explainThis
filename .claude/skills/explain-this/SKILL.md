@@ -70,7 +70,7 @@ Split the subsystem into **pieces**, using what the survey showed. A piece is a 
 The user must understand what the system is and how it is organised before any code is walked through. Present this overview before piece 1, and keep it to roughly 400 to 700 words, plus a diagram or table if it helps:
 
 1. **Purpose**: what the system is for, who uses it, and what it does not do.
-2. **Modules and services**: each major module, service or process with a one-line responsibility and the files or packages behind it. Say which are core and which are supporting.
+2. **Modules and services**: group by repo (name the repo and branch), then list each module, service or process with a one-line responsibility and the files or packages behind it. Say which are core and which are supporting. For each place where two repos or processes meet, name the interface (messages, endpoints, topics) and which side owns it. Add the external actors: operators, upstream and downstream systems, and the product names the team uses for them.
 3. **How they fit together**: the dependency direction between modules, and the two or three main flows end to end (for example a request, a background job, a deployment of a change), at module level, naming no functions.
 4. **State and external dependencies**: where data lives (databases, files, caches, queues) and which external systems it talks to.
 5. **Process and deployment shape**: how many processes, how they are started, what runs where.

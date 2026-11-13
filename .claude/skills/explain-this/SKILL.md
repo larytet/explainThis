@@ -20,7 +20,7 @@ The user names a subsystem, module, package or directory. If it is ambiguous, as
 1. List the files in scope with sizes. Identify entry points (main, handlers, public API, exported symbols, registered routes, CLI commands), configuration, tests and docs.
 2. Build the dependency picture: who calls whom, which modules import which. Use the language's tooling or grep; read the code to confirm what a tool reports.
 3. Check git history for scope (`git log --oneline -- <path>`, recent churn) and for any design docs, READMEs or spec files that describe intent.
-4. Split the subsystem into **pieces**. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 600 lines of code behind it). Order the pieces top-down: the overview and entry points first, then the components they use, then the shared leaves.
+4. Split the subsystem into **pieces**. A piece is a unit that can be explained in one sitting: a component, layer, or flow, small enough to hold in one answer (roughly 100 to 400 lines of code behind it). Prefer more, smaller pieces over fewer large ones; split a piece that would not fit the length budget in Phase 2. Order the pieces top-down: the overview and entry points first, then the components they use, then the shared leaves.
 5. Present the outline to the user: the pieces in order, with one line each and the files behind each. Mention anything you could not map (generated code, dynamic dispatch, reflection, external services). Then begin with piece 1 without waiting, unless the outline revealed something the user must decide.
 
 ## Phase 1: for each piece, review bottom-up first
@@ -35,6 +35,8 @@ Do the review before writing the explanation. Work from the leaves of the piece 
 6. Keep a ledger of each claim you intend to make, with its evidence.
 
 ## Phase 2: present the piece top-down
+
+**Length budget: a piece's explanation is about 350 to 650 words, excluding the Phase 3 footer.** The user must be able to read it in one sitting. Keep the claims that matter for understanding, cite them tersely (`file:line`), and cut the rest: no restating of what the code obviously does, no exhaustive field or file lists, no more than three open questions. If the material does not fit, split the piece and say so, instead of compressing evidence or writing longer. Details dropped for length can be given on request in a follow-up.
 
 Write the explanation from the top: purpose first, then structure, then the details, in this order:
 

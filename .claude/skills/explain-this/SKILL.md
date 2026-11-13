@@ -13,6 +13,16 @@ This skill is read-only. Do not edit, format or refactor the code being explaine
 
 **The code is the primary source for every statement, at every level, including the architecture overview and the piece outline.** READMEs, design docs, specs, tickets and threads (Jira, Notion, Slack, when reachable) support and enrich an explanation: they give intent, history and a better way to say it. They never ground a claim by themselves, and nothing is presented as a conclusion before a bottom-up read of the code has produced it.
 
+## Output formatting
+
+Everything shown to the user (outline, overview, pieces, follow-up answers) is read in a terminal, often on a wide screen. Hard-wrap
+prose at about 120 characters per line, never more than 140, so that no line has to be read across the full screen width.
+
+- Break at word boundaries. Put one sentence per line where that keeps lines short.
+- Wrap long list items and table-free prose the same way; indent continuation lines of a bullet by two spaces so the bullet stays readable.
+- Do not break inside a `file:line` reference, a code span or a URL, even if that line runs a little over.
+- Tables and code blocks are exempt, but keep table cells short; move long explanations out of a cell into the text.
+
 ## Inputs
 
 The user names a subsystem, module, package or directory. If it is ambiguous, ask once which path or entry point is meant. Ask for their level (new to the language, new to the codebase, or just new to this module) only if it is not obvious; default to an experienced engineer who has not seen this code.

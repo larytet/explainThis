@@ -31,7 +31,7 @@ code,pre,.mono{font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
 .frames button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .settings{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 16px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12.5px}
 .settings label{display:flex;gap:5px;align-items:center;color:var(--mute)}
-.main{flex:1;display:grid;grid-template-columns:230px 1fr 16px 340px;min-height:0}
+.main{flex:1;display:grid;grid-template-columns:var(--lw,230px) 1fr 16px var(--rw,340px);position:relative;min-height:0}
 aside,.canvas{overflow:auto;padding:12px}
 .outline{background:var(--panel);border-right:1px solid var(--line)}
 .evid{background:var(--panel);border-left:1px solid var(--line)}
@@ -93,6 +93,9 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .diff.split td.c{width:50%}
 .diff.split td.c.d{background:var(--del);color:var(--delink)}.diff.split td.c.a{background:var(--add);color:var(--addink)}
 .diff.split td.e{background:var(--code)}.diff.split td.mid{width:6px;background:var(--line);padding:0}
+.rs{position:absolute;top:0;bottom:0;width:8px;cursor:col-resize;z-index:5;touch-action:none}
+.rs:hover,.rs.drag{background:color-mix(in srgb,var(--accent) 40%,transparent)}
+#rsl{left:calc(var(--lw,230px) - 4px)}#rsr{right:calc(var(--rw,340px) - 4px)}
 .mini{position:relative;background:var(--code);border-left:1px solid var(--line);border-right:1px solid var(--line)}
 .mini i{position:absolute;left:2px;right:2px;min-height:4px;border-radius:2px;cursor:pointer;opacity:.85}
 .mini i.verified{background:var(--ver)}.mini i.inferred{background:var(--inf)}.mini i.stated{background:var(--sta)}.mini i.unverified{background:var(--unv)}
@@ -101,7 +104,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .files label{display:flex;gap:6px;align-items:center;padding:3px 8px;font-size:12.5px}
 .files .cnt{margin-left:auto;font-size:11.5px}.cnt .p{color:var(--addink)}.cnt .m{color:var(--delink)}
 .files .done span.nm{text-decoration:line-through;color:var(--mute)}
-@media (max-width:900px){.main{grid-template-columns:1fr}.outline,.evid,.mini{display:none}}
+@media (max-width:900px){.main{grid-template-columns:1fr}.outline,.evid,.mini,.rs{display:none}}
 </style>
 </head>
 <body>
@@ -137,6 +140,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
     <p class="note">Mock data is illustrative. Line numbers refer to the sample diff in this page.</p>
   </aside>
   <div class="canvas" id="canvas"></div>
+  <div class="rs" id="rsl" title="Drag to resize"></div><div class="rs" id="rsr" title="Drag to resize"></div>
   <div class="mini" id="mini" title="Difference map (click to jump). Colour = label."></div>
   <aside class="evid" id="evid"></aside>
 </div>
@@ -392,6 +396,16 @@ $("#gl").onclick=()=>{$("#dlgc").innerHTML="<h3>Glossary (terms used so far)</h3
 $("#au").onclick=()=>{$("#dlgc").innerHTML="<h3>Audit log</h3><p class='note'>What the verification pass dropped, downgraded or checked.</p>"+AUDIT.map(a=>`<p>${a}</p>`).join("");dlg.showModal()};
 $("#md").onclick=()=>{const t=Object.keys(L).map(k=>`- [${L[k].label}] ${L[k].claim} (${L[k].ev.map(v=>v[0]+":"+v[2]+"-"+v[3]).join(", ")||"no code evidence"})`).join("\n");
   navigator.clipboard?.writeText(t).then(()=>{$("#md").textContent="Copied"; setTimeout(()=>$("#md").textContent="Copy as Markdown",1200)},()=>{})};
+(function(){const main=$("#main");
+  try{const v=JSON.parse(localStorage.getItem("dv-w")||"{}");if(v.l)main.style.setProperty("--lw",v.l+"px");if(v.r)main.style.setProperty("--rw",v.r+"px")}catch(e){}
+  function drag(h,side){h.addEventListener("pointerdown",e=>{e.preventDefault();h.setPointerCapture(e.pointerId);h.classList.add("drag");
+    const mv=ev=>{const r=main.getBoundingClientRect();const w=side==="l"?ev.clientX-r.left:r.right-ev.clientX;
+      const max=r.width-16-260-(side==="l"?parseInt(getComputedStyle(main).getPropertyValue("--rw"))||340:parseInt(getComputedStyle(main).getPropertyValue("--lw"))||230);
+      main.style.setProperty(side==="l"?"--lw":"--rw",Math.max(140,Math.min(max,w))+"px")};
+    const up=()=>{h.classList.remove("drag");h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up);
+      try{localStorage.setItem("dv-w",JSON.stringify({l:parseInt(getComputedStyle(main).getPropertyValue("--lw"))||null,r:parseInt(getComputedStyle(main).getPropertyValue("--rw"))||null}))}catch(e){}buildMini()};
+    h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up)})}
+  drag($("#rsl"),"l");drag($("#rsr"),"r")})();
 renderOutline();renderFiles();render();showEv("C4");
 </script>
 </body>

@@ -38,6 +38,8 @@ The code is made up: the C++ change compiles and its test passes, the Python tes
 fragment that is not meant to build. Each page passed the checks (0 errors). Open any `mock.html` in a browser;
 the diff and the ledger of claims sit beside it. Spec: `diff-viz/REQUIREMENTS.md`.
 
+The screenshots below use the dark theme; the Theme button in the page cycles auto, light and dark.
+
 To make one for your own change, ask Claude Code in this repo: `/diff-mock` and name a commit, a range, a patch file or a file of code.
 
 ### C++ Edition

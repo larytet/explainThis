@@ -105,6 +105,20 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .files .cnt{margin-left:auto;font-size:11.5px}.cnt .p{color:var(--addink)}.cnt .m{color:var(--delink)}
 .files .done span.nm{text-decoration:line-through;color:var(--mute)}
 @media (max-width:900px){.main{grid-template-columns:1fr}.outline,.evid,.mini,.rs{display:none}}
+.lead{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.gnav{display:none;gap:10px;align-items:center;flex-wrap:wrap}
+body.guided .gnav{display:flex}
+body.guided .zoom,body.guided #pv,body.guided #nv,body.guided #next,body.guided .zonly{display:none}
+body.focus .outline,body.focus .evid,body.focus .mini,body.focus .rs{display:none}
+body.focus .main{grid-template-columns:1fr}
+.outline .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:10px 8px 2px}
+.outline a .tick{color:var(--ver)}
+.flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.flow .node.dec{border-radius:99px}
+.flow .lbl{font-size:11.5px;color:var(--mute)}
+.coh{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px;background:var(--code)}
+.coh h3{margin:0 0 4px;font-size:14px}
+.coh button{margin:4px 6px 0 0}
 </style>
 </head>
 <body>
@@ -119,6 +133,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   <span class="spacer"></span>
   <span class="frames"><span class="note">front end:</span>
     <button data-f="app" class="on">Standalone</button><button data-f="gh">GitHub</button><button data-f="vs">VS Code</button></span>
+  <button id="lead" class="lead" title="Walk through the change one group at a time, grouped by meaning">Lead me</button>
   <button id="theme">Theme</button>
 </div>
 
@@ -152,6 +167,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   </div>
   <button id="pv" title="F7">&#9650; prev change</button><button id="nv" title="F8">&#9660; next change</button>
   <button id="next">Next piece &rarr;</button>
+  <span class="gnav"><button id="gp" title="K">&larr; previous</button><span id="gpos" class="note"></span><button id="gn" class="lead" title="J">next &rarr;</button>
+    <label class="note"><input type="checkbox" id="gdone"> layer reviewed</label><button id="gz" title="Z">Focus (Z)</button></span>
   <div class="cov" id="cov"></div>
   <button id="gl">Glossary</button><button id="au">Audit</button><button id="md">Copy as Markdown</button>
 </div>
@@ -241,7 +258,7 @@ const AUDIT=["Dropped: 'retries are safe because the endpoint is idempotent' - n
 const LEVELS=["L0 Code","L1 Hunks","L2 Symbols","L3 Components","L4 Change"];
 
 /* ---- state ---- */
-const st={split:false,viewed:{},cur:-1,z:2,sel:null,over:{},piece:0,frame:"app"};
+const st={mode:"zoom",step:0,gviewed:{},split:false,viewed:{},cur:-1,z:2,sel:null,over:{},piece:0,frame:"app"};
 const $=s=>document.querySelector(s), canvas=$("#canvas");
 const chipTxt={verified:"verified",inferred:"~ inferred",stated:"stated",unverified:"? unverified"};
 const chip=id=>`<button class="chip ${L[id].label}" data-c="${id}" title="Open evidence">${chipTxt[L[id].label]}</button>`;
@@ -306,6 +323,7 @@ function blockChange(){
    <h3>Risks and unknowns</h3>${claimsHtml(["C4","C7","C5"])}</div></div>`}
 
 function render(){
+  if(st.mode==="guided"){renderGuided();return}
   const z=st.z; let h="";
   const byFile=$("#order").checked;
   if(z===4){ h=blockChange()+`<p class="note">Zoom in to see which components, symbols and lines these statements come from.</p>`;
@@ -339,6 +357,10 @@ function showEv(id,hl){
    <p class="note">Audit: citation exists, identifiers found in range, second-pass check passed (mock).</p>`;
 }
 function renderOutline(){
+  if(st.mode==="guided"){
+    $("#outline").innerHTML=`<a data-gs="0" class="${st.step===0?"on":""}">Overview</a>`+COHORTS.map((c,k)=>`<div class="grp">${k+1}. ${c.name}</div>`+c.layers.map(l=>{const s=STEPS.indexOf(l);
+      return `<a data-gs="${s}" class="${s===st.step?"on":""}">${ORDER.indexOf(l)+1}. ${LAYERS[l].title}${st.gviewed[l]?' <span class="tick">&#10003;</span>':""}</a>`}).join("")).join("");
+    return}
   $("#outline").innerHTML=PIECES.map((p,i)=>`<a data-p="${i}" class="${i===st.piece?"on":""}">${i+1}. ${p.name}${p.risk?' <span class="risk">&#9650;</span>':""}<small>${p.sub}</small></a>`).join("");
 }
 
@@ -361,6 +383,63 @@ $("#mini").addEventListener("click",e=>{const j=e.target.dataset?.j;if(j!==undef
 $("#nv").onclick=()=>go(st.cur+1);$("#pv").onclick=()=>go(st.cur-1);
 $("#split").addEventListener("change",e=>{st.split=e.target.checked;render()});
 document.addEventListener("keydown",e=>{if(e.key==="F8"){e.preventDefault();go(st.cur+1)}if(e.key==="F7"){e.preventDefault();go(st.cur-1)}});
+/* ---- Lead me: guided review, one group of changes at a time, grouped by meaning (cohorts of ordered layers) ---- */
+const COHORTS=[
+ {id:"G1",name:"Retry failed charges",why:"One purpose: a charge that hits a transient error is resent after a growing delay.",layers:["Y1","Y2","Y3","Y4"]},
+ {id:"G2",name:"Formatting only",why:"No behaviour change; folded by default.",layers:["Y5"]}];
+const LAYERS={
+ Y1:{title:"Retry settings",order:"Read first: the later layers read these two values.",claims:["C3"],ranges:[["payment/config.go",10,13]]},
+ Y2:{title:"Delay between attempts",order:"Second: Charge calls it, so read it before Charge.",claims:["C2"],ranges:[["payment/client.go",52,57]]},
+ Y3:{title:"Charge retries",order:"Third: composes layers 1 and 2. This is where the purpose of the change lives.",claims:["C1","C9","C4","C6"],ranges:[["payment/client.go",40,51]],diagram:true},
+ Y4:{title:"Test and what is not known",order:"Last in the cohort: what the test covers and what it does not.",claims:["C5","C7"],ranges:[["payment/client_test.go",10,14]]},
+ Y5:{title:"Whitespace in checkout",order:"Separate cohort, no link to the retry change.",claims:["C8"],ranges:[["handlers/checkout.go",22,22]]}};
+const ORDER=Object.keys(LAYERS);
+const STEPS=["overview",...ORDER];
+const cohortOf=id=>COHORTS.find(c=>c.layers.includes(id));
+function flowHtml(){
+  const n=(t,c)=>`<span class="node ${c||""}">${t}</span>`,a='<span class="arrow">&rarr;</span>';
+  return `<div class="flow">${n("send request")}${a}${n("ok and status &lt; 500?","dec")}<span class="lbl">yes</span>${a}${n("return response")}</div>
+   <div class="flow">${n("ok and status &lt; 500?","dec")}<span class="lbl">no</span>${a}${n("sleep backoff(base, attempt)")}${a}${n("attempt &le; MaxRetries?","dec")}<span class="lbl">yes: send again</span></div>
+   <div class="flow">${n("attempt &le; MaxRetries?","dec")}<span class="lbl">no</span>${a}${n("return last error")}</div>
+   <p class="note">Shown because this layer is a loop with three exits (a state transition). Built from C1 and C2, payment/client.go:43-50. Layers with no such structure stay text only.</p>`}
+function renderGuided(){
+  const i=st.step,id=STEPS[i],N=ORDER.length;let h="";
+  h+=`<p class="note">Snapshot <code>e41c9a0</code> (head of retry-backoff) <span class="pill done">up to date</span> &nbsp; The tool leads; you decide when to move on.</p>`;
+  if(id==="overview"){
+    h+=`<div class="block hero"><div class="bb"><h2>${COHORTS.length} groups of changes, ${N} layers</h2>
+     <p>The change is grouped by meaning, not by file. Each group is read in order, one layer at a time. Every changed hunk is in exactly one layer, so nothing is skipped.</p></div></div>`+
+     COHORTS.map((c,k)=>`<div class="coh"><h3>${k+1}. ${c.name}</h3><p class="note">${c.why}</p>${c.layers.map(l=>`<button data-gs="${STEPS.indexOf(l)}">${ORDER.indexOf(l)+1}. ${LAYERS[l].title}${st.gviewed[l]?" &#10003;":""}</button>`).join("")}</div>`).join("")+
+     `<p><button class="lead" data-gs="1">Start with layer 1</button></p>`;
+  } else {
+    const y=LAYERS[id],c=cohortOf(id),n=ORDER.indexOf(id)+1;
+    h+=`<div class="block" id="${id}"><div class="bh"><span class="t">Layer ${n} of ${N}: ${y.title}</span><span class="pill">${c.name}</span><span class="f">group ${COHORTS.indexOf(c)+1} of ${COHORTS.length}</span></div>
+     <div class="bb"><p class="note">${y.order}</p><h3>What this layer does</h3>${claimsHtml(y.claims)}${y.diagram?flowHtml():""}</div></div>
+     <div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f">${y.ranges.map(r=>r[0]+":"+r[1]+"-"+r[2]).join(", ")}</span></div>
+     ${y.ranges.map(r=>diffFor(r[0],[r[1]-2,r[2]+2],null,false)).join("")}</div>`;
+    if(i===STEPS.length-1){const d=ORDER.filter(l=>st.gviewed[l]).length;
+      h+=`<div class="block hero"><div class="bb"><h3>End of the change</h3><p>${d} of ${N} layers marked reviewed. Open the audit log or the unverified list before you approve. <button data-gs="0">Back to overview</button></p></div></div>`}
+  }
+  canvas.innerHTML=h;
+  $("#gpos").textContent=id==="overview"?`Overview (${N} layers)`:`Layer ${ORDER.indexOf(id)+1} of ${N}`;
+  $("#gp").disabled=i===0;$("#gn").disabled=i===STEPS.length-1;
+  $("#gdone").checked=!!st.gviewed[id];$("#gdone").disabled=id==="overview";
+  $("#cov").innerHTML=`Layers cover 5 of 5 hunks; each hunk is in exactly one layer.<div class="meter"><i style="width:100%"></i></div>`;
+  buildMini();
+}
+function gstep(i){st.step=Math.max(0,Math.min(STEPS.length-1,i));render();canvas.scrollTop=0;renderOutline();
+  const y=LAYERS[STEPS[st.step]];if(y)showEv(y.claims[0])}
+function toggleFocus(){document.body.classList.toggle("focus");$("#gz").classList.toggle("on",document.body.classList.contains("focus"));buildMini()}
+function setMode(m){st.mode=m;document.body.classList.toggle("guided",m==="guided");
+  if(m!=="guided"){document.body.classList.remove("focus")}
+  $("#lead").textContent=m==="guided"?"Back to zoom view":"Lead me";
+  if(m==="guided"){st.step=0}
+  renderOutline();render()}
+$("#lead").onclick=()=>setMode(st.mode==="guided"?"zoom":"guided");
+$("#gn").onclick=()=>gstep(st.step+1);$("#gp").onclick=()=>gstep(st.step-1);$("#gz").onclick=toggleFocus;
+$("#gdone").addEventListener("change",e=>{const id=STEPS[st.step];if(id!=="overview"){st.gviewed[id]=e.target.checked;renderOutline()}});
+document.addEventListener("keydown",e=>{if(st.mode!=="guided"||e.target.matches("input,select"))return;
+  if(e.key==="j")gstep(st.step+1);else if(e.key==="k")gstep(st.step-1);else if(e.key==="z")toggleFocus();
+  else if(e.key==="Escape"){if(document.body.classList.contains("focus"))toggleFocus();else setMode("zoom")}});
 /* ---- events ---- */
 document.addEventListener("click",e=>{
   const t=e.target.closest("button,a,[data-fold]"); if(!t)return;
@@ -372,7 +451,8 @@ document.addEventListener("click",e=>{
   else if(t.dataset.go){e.preventDefault();st.z=2;render();document.getElementById(t.dataset.go)?.scrollIntoView({behavior:"smooth"})}
   else if(t.dataset.p!==undefined){st.piece=+t.dataset.p;renderOutline();const id=["S1","S3","S4","S5"][st.piece];document.getElementById(id)?.scrollIntoView({behavior:"smooth"})}
   else if(t.dataset.f){st.frame=t.dataset.f;document.querySelectorAll(".frames button").forEach(b=>b.classList.toggle("on",b===t));
-    document.body.className=st.frame==="gh"?"frame-gh":st.frame==="vs"?"frame-vs":""}
+    document.body.classList.toggle("frame-gh",st.frame==="gh");document.body.classList.toggle("frame-vs",st.frame==="vs")}
+  else if(t.dataset.gs!==undefined){gstep(+t.dataset.gs)}
   else if(t.dataset.fold!==undefined){$("#noise").value="all";render()}
 });
 function renderOverride(id,nx){
@@ -385,7 +465,7 @@ $("#z").addEventListener("input",e=>{st.z=+e.target.value;st.over={};render()});
 ["aud","focus","noise","det","order"].forEach(i=>$("#"+i).addEventListener("change",render));
 $("#next").onclick=()=>{st.piece=(st.piece+1)%PIECES.length;renderOutline();const id=["S1","S3","S4","S5"][st.piece];document.getElementById(id)?.scrollIntoView({behavior:"smooth"})};
 $("#theme").onclick=()=>{const r=document.documentElement;r.dataset.theme=(r.dataset.theme==="dark"||(!r.dataset.theme&&matchMedia("(prefers-color-scheme:dark)").matches))?"light":"dark"};
-document.addEventListener("keydown",e=>{if(e.target.matches("input,select"))return;
+document.addEventListener("keydown",e=>{if(e.target.matches("input,select")||st.mode==="guided")return;
   if("01234".includes(e.key)&&e.key!==""){st.z=+e.key;st.over={};render()}
   else if(e.key==="+"||e.key==="="){st.z=Math.max(0,st.z-1);st.over={};render()}
   else if(e.key==="-"){st.z=Math.min(4,st.z+1);st.over={};render()}

@@ -2,7 +2,7 @@
 
 - `REQUIREMENTS.md`: requirements specification (two passes from the explain-this skill: bottom-up ledger, top-down views).
 - `mock/index.html`: interactive UI/UX mock (static, no build, illustrative data). Zoom with the slider, `0`-`4`, `+`/`-`,
-  or ctrl+wheel; `F7`/`F8` step through changes; the "front end" buttons show the GitHub, VS Code and standalone frames.
+  or ctrl+wheel; the "Lead me" button starts a guided walkthrough (cohorts of layers, one layer at a time; `J`/`K` step, `Z` focus mode, `Esc` leaves); `F7`/`F8` step through changes; the "front end" buttons show the GitHub, VS Code and standalone frames.
 
 ## Publish the mock with GitHub Pages
 

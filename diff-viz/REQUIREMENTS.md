@@ -1,11 +1,14 @@
 # diff-viz: requirements specification
 
-Status: draft 0.1. Mock: `mock/index.html` (open in a browser; all data in it is illustrative).
+Status: draft 0.2 (adds the guided "Lead me" mode, section 4.3, after CodeRabbit's Change Stack). Mock: `mock/index.html` (open in a browser; all data in it is illustrative).
 
 diff-viz shows a code change (a pull request, a commit range, a branch comparison) as a zoomable picture. At the lowest zoom it
 is an ordinary code diff. As the user zooms out, the code is progressively hidden and replaced by AI-written abstractions:
 hunk summaries, symbol-level changes, component-level changes, and finally one architecture-level overview of the change.
 It is "explain-this for a diff".
+
+A second way in, "Lead me" (section 4.3), takes the same ledger and walks the user through the change one group at a time:
+changes grouped by meaning into cohorts, each cohort split into ordered layers, one layer on screen at a time.
 
 It ships as three front ends over one core: a GitHub browser extension, a VS Code extension, and a standalone app.
 
@@ -28,6 +31,7 @@ spec and the skill disagree on a rule about evidence, the skill wins. The rules 
 | Define terms at first use, running glossary | Project terms and patterns used in a summary are defined once, then listed in a glossary | R-G1 |
 | Length budgets and stop points | Each abstract block has a size budget; "details on request" instead of longer text | R-B1 |
 | Stay on a piece until the user moves on | The user drives zoom and focus; the tool does not auto-advance | R-U5 |
+| Top-down, one piece at a time, stop after each | "Lead me" shows one layer, then waits for the user (next, previous, or jump) | R-GR3 |
 
 ## 2. Goals and non-goals
 
@@ -109,12 +113,31 @@ LedgerEntry {
   kind          "behavior" | "interface" | "risk" | "test-gap" | "format-only" | "disagreement" | "unknown"
   terms[]       project terms and patterns used, each pointing to a glossary entry
 }
+
+Cohort {
+  id            e.g. "G1"
+  name          short name of the purpose, e.g. "Retry failed charges"
+  why           one sentence: what ties the layers together (a ledger claim, labelled like any other)
+  layers[]      ids of its layers, in reading order
+}
+
+Layer {
+  id            e.g. "Y3"
+  cohort        id of its cohort
+  title         short, plain language
+  order_reason  one sentence: why it is read at this position ("Charge calls backoff, so read backoff first")
+  claims[]      ledger entry ids the summary is made from (the summary is a rephrasing of these, R-L1)
+  ranges[]      { file, revision, lines: [from, to], hunkId }   the diff lines the layer owns
+  diagram       null, or { type: "sequence" | "state" | "entity-relationship" | "flow", built_from[]: claim ids }
+}
 ```
 
 R-L1. Every abstract view is a function of the ledger only. The renderer and the summariser never receive raw code as a
 prompt to "summarise"; they receive ledger entries and render or rephrase them.
 R-L2. An entry at level `component` or `change` must list the lower entries it depends on; its label may not be stronger
 than the weakest entry it depends on, unless a reasoning step is recorded (and then it is `inferred`).
+R-L4. Cohorts and layers are stored in the ledger. They are derived from `depends_on` and the call graph of R-P1.3, so a model
+may propose a grouping or a name but may not invent a dependency; a layer's `order_reason` must name a real edge.
 R-L3. The ledger is stored with the diff (local cache keyed by the two revisions) so the same diff gives the same views.
 
 ### 4.2 Pass 2, top-down: explain from the ledger
@@ -136,6 +159,61 @@ Pass 2 mirrors Phases 0.5 to 3 of the skill. It renders, in this order, with eac
 
 R-P2.8 The "pieces" are the units the zoom works on: zooming in on a piece moves from its L3 card down through its symbols (L2)
 to its hunks (L1) to its code (L0).
+
+### 4.3 Guided review ("Lead me"): changes grouped by meaning, one at a time
+
+Zoom (section 5) lets the user choose the depth. "Lead me" is the other mode: the tool chooses the order and the user only
+says "next". It is opt-in, the zoom view stays the default, and one control switches between them without losing the place.
+The idea follows CodeRabbit's Change Stack (a flat, alphabetical file list becomes a guided walkthrough organised by intent).
+Everything the tool shows in this mode still comes from the ledger and keeps the four labels and the checks of section 7.
+
+Grouping
+
+- R-GR1. Cohorts: the change is split into a small number of independent groups of changes, each with one purpose
+  (target: 2 to 7 for a 100-file change). Independent means no layer of one cohort depends on a layer of another, so a cohort
+  can be read, and judged, alone. Format-only, generated and lockfile changes form their own cohorts, folded by default.
+- R-GR2. Layers: each cohort is split into layers in logical reading order: what the others rely on first (types, settings,
+  helpers), then what composes them, then entry points and wiring, then tests and gaps last. Order comes from the dependency
+  edges (R-L4), not from file path. Each layer owns specific line ranges.
+- R-GR2a. Coverage: every changed hunk belongs to exactly one layer. The UI shows "layers cover n of n hunks"; a hunk that no
+  layer owns is a build error, not a hidden item. The raw hunks stay one click away (R-Z5).
+- R-GR2b. A layer is small enough to read in one sitting (budget: about 1 screen of summary and 60 changed lines, R-B1). A larger
+  one is split, or marked as a long layer with the reason.
+
+One at a time
+
+- R-GR3. One layer is on screen at a time: its summary and the lines behind it. The tool never advances on its own (R-U5).
+  Controls: next and previous, a jump from the outline, and keys `J` (next) and `K` (previous). The first step is an overview
+  of the cohorts and layers, so the user sees the whole route before taking the first step.
+- R-GR4. Each layer shows: title, why it is read now (`order_reason`), the summary as claims with label and evidence chips
+  (R-Z6), the cited lines with a little surrounding context so the user stays on that layer's part of the change, and where
+  relevant the unverified and inferred items that touch it. The layer's lines are the ones backing its claims (R-Z4).
+- R-GR5. Diagrams only when the structure warrants one: an API contract or message shape (entity-relationship), a state
+  transition (state), a call sequence across components or services (sequence), a loop or branching with several exits (flow).
+  A layer with no such structure stays text. A diagram is built from ledger entries, lists them under it, and may not show an
+  edge the ledger does not hold (R-V1 applies to a diagram's nodes and edges).
+- R-GR6. Progress: each layer has a "reviewed" mark, shown in the outline, with a count per cohort and overall. It is the
+  reader's own mark; the tool never sets it. Reviewed marks and the per-file "Viewed" boxes (R-U18) agree: a file is viewed
+  when all layers that own its hunks are reviewed, and the UI says so.
+- R-GR7. End of the route: the last step lists the cohorts and layers not yet marked reviewed, every `unverified` entry, and
+  every disagreement between text and code (R-P2.7), so the reader does not finish without seeing the unknowns.
+- R-GR8. Focus mode (`Z`): hides the outline and the evidence rail and leaves one layer on screen. `Esc` leaves focus mode,
+  then leaves "Lead me".
+- R-GR9. The evidence rail follows the layer: on each step it opens the first claim of the layer, and while the user scrolls
+  within a layer it highlights the claim whose lines are in view.
+- R-GR10. Snapshots: the walkthrough is built for one pair of revisions (R-L3). The view shows the head commit it was built
+  from. If the branch has moved on, a banner says so, names the new commit, and offers to rebuild; earlier snapshots of the
+  same change can be selected, with their reviewed marks kept per snapshot.
+- R-GR11. Permalinks (R-U20) include the mode, the layer and the snapshot, so "layer 3 of this change" can be sent to
+  someone. Sign-in redirects keep the exact link.
+- R-GR12. The same settings (audience, focus, noise, detail) apply. Focus "risks" reorders nothing in the route; it only
+  emphasises layers that carry risk and flags them in the outline. A layer is never skipped by a setting (R-D2).
+- R-GR13. Read-only (R-S1): comments on a layer's line ranges, a draft review and submission to the host belong to R-U21 and are
+  not part of version 1.
+
+What differs from Change Stack, on purpose: every sentence carries a label (verified, inferred, stated, unverified) and cited
+lines that were checked mechanically (R-V1); the grouping and order rest on dependency edges, not on a model's opinion; the
+tool shows what it could not determine; and it runs over a local repository as well as a pull request.
 
 ## 5. Zoom model
 
@@ -178,6 +256,7 @@ is emphasised; they never change what is true. The same ledger is rendered under
 | Noise | show all, fold format-only and generated, fold also test files | Folding is by the class from R-P1.1 and R-P1.2; folded items are counted and openable |
 | Detail budget | brief, normal, long | Scales the word budgets in R-B1 |
 | Compare to | PR description, none | Whether the text-versus-code disagreements (R-X1) are shown |
+| Mode | zoom view (default), Lead me | Section 4.3 against section 5; the same ledger, switchable at any time |
 
 R-D1. The AI may choose a starting zoom per block from audience, focus and block size (for example, open a large format-only
 hunk at L1 and a risky symbol at L0). Every automatic choice is shown ("opened at L0 because: touches payment retry") and is
@@ -233,6 +312,9 @@ Layout (all front ends)
   cited code with the cited lines highlighted, the entries it is built from, and the entries built from it.
 - R-U5. Bottom: the zoom bar (five labelled stops), the coverage meter, and the glossary and audit buttons. The tool never
   advances on its own; the user moves between pieces and levels (the skill's stop-and-wait rule). A "next piece" control exists.
+- R-U5a. In "Lead me" the bottom bar swaps the zoom slider for previous, next, "layer reviewed" and focus controls (R-GR3,
+  R-GR6, R-GR8); the left outline lists cohorts and their layers instead of pieces; the difference map and the evidence
+  panel stay. The "Lead me" button is in the top bar next to the theme toggle and reads "Back to zoom view" while active.
 - R-U6. Two Pass indicators are always visible: "Pass 1 bottom-up: n of m symbols read, k claims" and "Pass 2 top-down".
   While Pass 1 runs, the views already supported by finished parts are available; the rest show "reading". No abstract view is
   built from a part that is still unread.
@@ -249,7 +331,10 @@ Interaction
 - R-U12. Performance: first view (file list and L0) within 1 s for a 100-file change; L1 by parser within 5 s; abstract
   levels stream in as Pass 1 completes per part. Zoom animation at 60 fps for a canvas of up to 500 blocks (virtualised).
 
-Ideas borrowed from existing diff tools (the mock implements the first five)
+Keyboard map: `0` to `4`, `+`, `-` zoom (zoom view); `F7` and `F8` previous and next block; in "Lead me", `J` next layer, `K`
+previous layer, `Z` focus mode, `Esc` leave focus, then leave "Lead me".
+
+Ideas borrowed from existing diff tools (the mock implements the first five, and the "Lead me" mode)
 
 From Beyond Compare:
 - R-U13. Side-by-side view at L0 with the changed lines paired across a centre gutter (toggle with unified view).
@@ -311,12 +396,19 @@ E. Determinism. The same two revisions, model and settings give the same ledger 
 F. Noise. A change that is only a formatter run is shown as a single folded block at every level above L0 and has 0 behaviour
    claims.
 G. Parity. The same change and the same settings give the same blocks and labels in all three front ends.
+H. Guided coverage. For every change in the corpus of test A, every hunk is owned by exactly one layer, no layer depends on a
+   layer of another cohort, and reading the layers in order never shows a function before a layer that defines what it calls
+   (checked against the call graph, not by a model).
+I. Guided honesty. Every claim and every diagram edge shown in "Lead me" passes R-V1; a layer that has no structure worth a
+   diagram has none; the end-of-route step lists 100 % of the `unverified` entries.
+J. Never auto-advance. In a scripted session the view stays on one layer until a next, previous or jump action.
 
 ## 12. Phases
 
 1. Core and standalone app: git input, parser, deterministic L0 and L1, ledger store.
 2. Pass 1 generation and verification pipeline; L2 and L3 views.
 3. L4 overview, settings, evidence panel, audit.
+3a. Cohorts and layers in the ledger (R-L4), "Lead me" with J, K, Z, reviewed marks and conditional diagrams (section 4.3).
 4. VS Code extension.
 5. GitHub extension.
 6. Local model, `.diff-viz.yml`, export, accessibility audit.
@@ -327,6 +419,9 @@ G. Parity. The same change and the same settings give the same blocks and labels
 - D2. TypeScript for the whole core, or Rust for the parser and diff engine with a TypeScript shell.
 - D3. Whether stated text from tickets (Jira, Notion, Slack) is in scope for version 1 or only the PR description.
 - D4. Whether the verification model (R-V1.4) must be a different model from the generating one.
+- D6. Cohort and layer naming: a model may name them (from ledger claims only), but should the grouping itself be computed by a
+  deterministic graph clustering step, with the model only wording it? Preference: deterministic grouping.
+- D7. Whether "Lead me" becomes the default for changes above a size threshold (for example 20 files), and what the threshold is.
 - D5. Whether GitLab is in scope for version 1 (the qSpark group uses GitLab; the GitHub extension is as requested).
 
 ## 14. Glossary (terms used in this spec)
@@ -338,4 +433,8 @@ G. Parity. The same change and the same settings give the same blocks and labels
 - Language server: a process, per language, that answers "where is this defined" and "who references this" (the protocol behind
   editor navigation).
 - Ledger: the list of claims, each with evidence and a label, that every abstract view is built from (section 4.1).
+- Cohort: a group of changes with one purpose, independent of the other groups; read as a unit in "Lead me".
+- Layer: one step inside a cohort, in reading order, owning specific line ranges and having its own summary.
+- Change Stack: CodeRabbit's pull request review view that groups a change into cohorts and layers, with a three-panel layout
+  and keys J, K and Z; the model for section 4.3.
 - Webview: an embedded web page inside a VS Code panel.

@@ -42,6 +42,8 @@ Layer
               | { "type": "er", ..., "entities": [{name, fields}], "relations": [[a, b, label]] } }
 ```
 
+A diagram `caption` is one short phrase; the page adds "Built from ..." itself, so do not repeat it.
+
 Rules the verifier enforces: every cited range exists in the diff; named identifiers and numbers occur in the cited lines (or those of
 `deps`); `inferred` has `why`, `stated` has `src`, non-unverified has evidence; no `verified` claim built from a weaker claim; no cycles;
 a `format-only` claim only on a hunk the parser marked whitespace-only or comment-only; every diff hunk listed once in `hunks`; every

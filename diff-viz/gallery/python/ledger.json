@@ -1,0 +1,723 @@
+{
+ "meta": {
+  "title": "Client-side rate limiting",
+  "repo": "api-client",
+  "base": "main",
+  "head": "rate-limit",
+  "pr": "Add client-side rate limiting to the API client (stops rate-limit errors)"
+ },
+ "claims": {
+  "C1": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`RateLimiter` is a token bucket: it stores at most `burst` tokens and refills `rate` tokens per second.",
+   "ev": [
+    [
+     "api/limiter.py",
+     "new",
+     5,
+     8
+    ]
+   ],
+   "deps": []
+  },
+  "C2": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "The constructor raises `ValueError` for a `rate` of zero or less, or a `burst` below 1.",
+   "ev": [
+    [
+     "api/limiter.py",
+     "new",
+     8,
+     10
+    ]
+   ],
+   "deps": []
+  },
+  "C3": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`acquire` refills the bucket from the elapsed time, capped at `burst`, and takes a token at once when at least 1 is available.",
+   "ev": [
+    [
+     "api/limiter.py",
+     "new",
+     17,
+     25
+    ]
+   ],
+   "deps": []
+  },
+  "C4": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "When no token is available, `acquire` works out the wait as the missing part of a token divided by `rate`, sets the bucket to zero, and sleeps after the lock is released.",
+   "ev": [
+    [
+     "api/limiter.py",
+     "new",
+     17,
+     30
+    ]
+   ],
+   "deps": []
+  },
+  "C5": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "Several threads can share one bucket without spending the same token twice: `_lock` guards the arithmetic, the sleep happens outside it, and a later caller sees a stamp in the future and waits longer.",
+   "ev": [
+    [
+     "api/limiter.py",
+     "new",
+     15,
+     15
+    ],
+    [
+     "api/limiter.py",
+     "new",
+     19,
+     29
+    ]
+   ],
+   "deps": [
+    "C3",
+    "C4"
+   ],
+   "why": "Lines 19 to 28 run inside the with block; line 28 stores a future time in _stamp, so the next caller's elapsed time is negative and its wait grows; line 29 sleeps after the block ends. Together this queues callers in order."
+  },
+  "C6": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "interface",
+   "claim": "`Config` gains `rate_per_sec` (default 10.0) and `burst` (default 5).",
+   "ev": [
+    [
+     "api/config.py",
+     "new",
+     5,
+     9
+    ]
+   ],
+   "deps": []
+  },
+  "C7": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`Client` builds one `RateLimiter` from the config's rate and burst when it is created, and `get` calls `acquire` before it builds the request.",
+   "ev": [
+    [
+     "api/client.py",
+     "new",
+     8,
+     15
+    ]
+   ],
+   "deps": []
+  },
+  "C8": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "risk",
+   "claim": "Each `Client` makes its own `RateLimiter`, so two clients in one process each get the full rate: the limit is per client, not per process.",
+   "ev": [
+    [
+     "api/client.py",
+     "new",
+     8,
+     11
+    ]
+   ],
+   "deps": [
+    "C7"
+   ],
+   "why": "Line 11 constructs the limiter inside the constructor, once per instance, and nothing in the diff passes one limiter to several clients."
+  },
+  "C9": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "risk",
+   "claim": "`get` waits inside `acquire` for as long as the bucket needs; nothing limits the wait, so a slow refill stalls the calling thread.",
+   "ev": [
+    [
+     "api/client.py",
+     "new",
+     13,
+     14
+    ],
+    [
+     "api/limiter.py",
+     "new",
+     17,
+     30
+    ]
+   ],
+   "deps": [
+    "C4",
+    "C7"
+   ],
+   "why": "acquire sleeps for the computed wait (line 29) and has no timeout or way to refuse; get (line 14) calls it directly."
+  },
+  "C10": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "The new tests cover a free burst of 3 calls, a fourth call that waits, and the `ValueError` for `rate=0`.",
+   "ev": [
+    [
+     "tests/test_limiter.py",
+     "new",
+     6,
+     20
+    ]
+   ],
+   "deps": []
+  },
+  "C11": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "test-gap",
+   "claim": "No test covers the client calling the limiter, refill over time, or two threads sharing a bucket.",
+   "ev": [
+    [
+     "tests/test_limiter.py",
+     "new",
+     6,
+     20
+    ]
+   ],
+   "deps": [],
+   "why": "The three tests only build a RateLimiter and call acquire; the client test file is not in the diff."
+  },
+  "C12": {
+   "label": "verified",
+   "lvl": "hunk",
+   "kind": "format-only",
+   "claim": "api/__init__.py changes spacing only: a blank line is added and a space after a comma; the exported names are the same.",
+   "ev": [
+    [
+     "api/__init__.py",
+     "new",
+     3,
+     4
+    ]
+   ],
+   "deps": []
+  },
+  "C14": {
+   "label": "unverified",
+   "lvl": "change",
+   "kind": "unknown",
+   "claim": "Whether the defaults match the provider's real limit is not stated anywhere in the repository.",
+   "ev": [],
+   "deps": []
+  },
+  "C15": {
+   "label": "stated",
+   "lvl": "change",
+   "kind": "disagreement",
+   "claim": "The PR title says client-side limiting stops rate-limit errors. The code only spaces calls from one client; it never reads a failed response or a retry header.",
+   "ev": [
+    [
+     "api/client.py",
+     "new",
+     13,
+     17
+    ]
+   ],
+   "deps": [],
+   "src": "PR title (code partly agrees)"
+  }
+ },
+ "hunks": [
+  {
+   "id": "H1",
+   "text": "exports: spacing only",
+   "claims": [
+    "C12"
+   ]
+  },
+  {
+   "id": "H2",
+   "text": "Client builds a limiter and calls it before each request",
+   "claims": [
+    "C7",
+    "C8"
+   ]
+  },
+  {
+   "id": "H3",
+   "text": "two rate settings added to Config",
+   "claims": [
+    "C6"
+   ]
+  },
+  {
+   "id": "H4",
+   "text": "new file: the token bucket",
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ]
+  },
+  {
+   "id": "H5",
+   "text": "new tests for the bucket",
+   "claims": [
+    "C10",
+    "C11"
+   ]
+  }
+ ],
+ "symbols": [
+  {
+   "id": "S1",
+   "name": "RateLimiter",
+   "file": "api/limiter.py",
+   "sig": "class RateLimiter",
+   "kind": "added",
+   "hunks": [
+    "H4"
+   ],
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "before": "(did not exist)",
+   "after": "A thread-safe token bucket with acquire()."
+  },
+  {
+   "id": "S2",
+   "name": "Client",
+   "file": "api/client.py",
+   "sig": "class Client",
+   "kind": "modified",
+   "hunks": [
+    "H2"
+   ],
+   "claims": [
+    "C7",
+    "C8",
+    "C9"
+   ],
+   "before": "get() sent the request at once.",
+   "after": "get() takes a token first."
+  },
+  {
+   "id": "S3",
+   "name": "Config",
+   "file": "api/config.py",
+   "sig": "class Config",
+   "kind": "modified",
+   "hunks": [
+    "H3"
+   ],
+   "claims": [
+    "C6"
+   ],
+   "before": "base_url and timeout.",
+   "after": "Adds rate_per_sec and burst."
+  },
+  {
+   "id": "S4",
+   "name": "limiter tests",
+   "file": "tests/test_limiter.py",
+   "sig": "3 test functions",
+   "kind": "added",
+   "hunks": [
+    "H5"
+   ],
+   "claims": [
+    "C10",
+    "C11"
+   ],
+   "before": "(did not exist)",
+   "after": "Burst, wait and bad settings."
+  },
+  {
+   "id": "S5",
+   "name": "package exports (format)",
+   "file": "api/__init__.py",
+   "sig": "__all__",
+   "kind": "format-only",
+   "hunks": [
+    "H1"
+   ],
+   "claims": [
+    "C12"
+   ],
+   "before": "same",
+   "after": "same"
+  }
+ ],
+ "components": [
+  {
+   "id": "K1",
+   "name": "rate limiting",
+   "role": "core to the change",
+   "desc": "A token bucket is added and the client waits on it before every request.",
+   "claims": [
+    "C5",
+    "C8",
+    "C9",
+    "C6"
+   ],
+   "syms": [
+    "S1",
+    "S3",
+    "S2"
+   ],
+   "tests": "3 tests, bucket only",
+   "risk": true,
+   "terms": [
+    "Token bucket"
+   ]
+  },
+  {
+   "id": "K2",
+   "name": "limiter tests",
+   "role": "supporting",
+   "desc": "Three tests exercise the bucket directly.",
+   "claims": [
+    "C10",
+    "C11"
+   ],
+   "syms": [
+    "S4"
+   ],
+   "tests": "n/a",
+   "risk": true,
+   "terms": []
+  },
+  {
+   "id": "K3",
+   "name": "package exports",
+   "role": "supporting (format only)",
+   "desc": "Spacing only. No behaviour change.",
+   "claims": [
+    "C12"
+   ],
+   "syms": [
+    "S5"
+   ],
+   "tests": "n/a",
+   "risk": false,
+   "terms": []
+  }
+ ],
+ "pieces": [
+  {
+   "id": "P1",
+   "name": "token bucket",
+   "sub": "limiter.py, new",
+   "comp": "K1",
+   "sym": "S1",
+   "risk": false
+  },
+  {
+   "id": "P2",
+   "name": "client and settings",
+   "sub": "client.py, config.py: per-client limit",
+   "comp": "K1",
+   "sym": "S2",
+   "risk": true
+  },
+  {
+   "id": "P3",
+   "name": "tests",
+   "sub": "limiter only: gap",
+   "comp": "K2",
+   "sym": "S4",
+   "risk": true
+  },
+  {
+   "id": "P4",
+   "name": "exports (format)",
+   "sub": "folded",
+   "comp": "K3",
+   "sym": "S5",
+   "risk": false
+  }
+ ],
+ "change": {
+  "purpose": "Make the API client wait on a token bucket before each request, so one client never sends faster than its configured rate.",
+  "graph": [
+   {
+    "n": "caller"
+   },
+   {
+    "n": "Client.get",
+    "chg": true
+   },
+   {
+    "n": "RateLimiter",
+    "chg": true
+   },
+   {
+    "n": "server (external)"
+   }
+  ],
+  "flow": {
+   "text": "caller -> `get` -> `acquire` (waits if the bucket is empty) -> the request -> server.",
+   "claim": "C7"
+  },
+  "stated": [
+   "C15"
+  ],
+  "risks": [
+   "C8",
+   "C9",
+   "C11",
+   "C14"
+  ]
+ },
+ "cohorts": [
+  {
+   "id": "G1",
+   "name": "Rate-limit the client",
+   "why": "One purpose: no client sends faster than its configured rate.",
+   "layers": [
+    "Y1",
+    "Y2",
+    "Y3",
+    "Y4",
+    "Y6"
+   ]
+  },
+  {
+   "id": "G2",
+   "name": "Formatting only",
+   "why": "No behaviour change; folded by default.",
+   "layers": [
+    "Y5"
+   ]
+  }
+ ],
+ "layers": {
+  "Y1": {
+   "title": "Rate settings",
+   "order": "Read first: the bucket and the client both take these two values.",
+   "sum": "Config gains a rate per second and a burst size, with defaults of 10 and 5.",
+   "claims": [
+    "C6"
+   ],
+   "ranges": [
+    {
+     "file": "api/config.py",
+     "new": [
+      8,
+      9
+     ]
+    }
+   ]
+  },
+  "Y2": {
+   "title": "The token bucket",
+   "order": "Second: the client calls it, so read it before the client.",
+   "sum": "A thread-safe token bucket: bursts are free, then each call waits its turn.",
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "ranges": [
+    {
+     "file": "api/limiter.py",
+     "new": [
+      1,
+      30
+     ]
+    }
+   ],
+   "diagram": {
+    "type": "flow",
+    "caption": "What acquire does.",
+    "built_from": [
+     "C3",
+     "C4"
+    ],
+    "edges": [
+     [
+      "take the lock",
+      "refill from the elapsed time",
+      ""
+     ],
+     [
+      "refill from the elapsed time",
+      "a token available?",
+      ""
+     ],
+     [
+      "a token available?",
+      "take it and return 0",
+      "yes"
+     ],
+     [
+      "a token available?",
+      "reserve the wait and empty the bucket",
+      "no"
+     ],
+     [
+      "reserve the wait and empty the bucket",
+      "release the lock and sleep",
+      ""
+     ],
+     [
+      "release the lock and sleep",
+      "return the wait",
+      ""
+     ]
+    ]
+   }
+  },
+  "Y3": {
+   "title": "The client waits on it",
+   "order": "Third: composes layers 1 and 2. This is where the purpose lives.",
+   "sum": "Each client makes its own bucket and takes a token before every request; the wait is unbounded.",
+   "claims": [
+    "C7",
+    "C8",
+    "C9"
+   ],
+   "ranges": [
+    {
+     "file": "api/client.py",
+     "new": [
+      5,
+      5
+     ]
+    },
+    {
+     "file": "api/client.py",
+     "new": [
+      11,
+      11
+     ]
+    },
+    {
+     "file": "api/client.py",
+     "new": [
+      14,
+      14
+     ]
+    }
+   ],
+   "diagram": {
+    "type": "sequence",
+    "caption": "One call to get.",
+    "built_from": [
+     "C7"
+    ],
+    "participants": [
+     "caller",
+     "Client",
+     "RateLimiter",
+     "server"
+    ],
+    "messages": [
+     [
+      "caller",
+      "Client",
+      "get(path)"
+     ],
+     [
+      "Client",
+      "RateLimiter",
+      "acquire()"
+     ],
+     [
+      "RateLimiter",
+      "Client",
+      "seconds slept"
+     ],
+     [
+      "Client",
+      "server",
+      "send the request"
+     ]
+    ]
+   }
+  },
+  "Y4": {
+   "title": "Tests and what is not covered",
+   "order": "Last in the cohort: what the tests cover and what they do not.",
+   "sum": "Three tests exercise the bucket alone; the client, refill over time and threads are untested.",
+   "claims": [
+    "C10",
+    "C11"
+   ],
+   "ranges": [
+    {
+     "file": "tests/test_limiter.py",
+     "new": [
+      1,
+      20
+     ]
+    }
+   ]
+  },
+  "Y6": {
+   "title": "Does it do what the title says?",
+   "order": "Last: compares the change with the PR title and lists what is unknown.",
+   "sum": "The code spaces calls; it does not react to errors. The defaults are unchecked.",
+   "claims": [
+    "C15",
+    "C14"
+   ],
+   "ranges": []
+  },
+  "Y5": {
+   "title": "Exports spacing",
+   "order": "Separate cohort, no link to the limiter.",
+   "sum": "Spacing only.",
+   "claims": [
+    "C12"
+   ],
+   "ranges": [
+    {
+     "file": "api/__init__.py",
+     "new": [
+      3,
+      4
+     ],
+     "old": [
+      3,
+      3
+     ]
+    }
+   ]
+  }
+ },
+ "glossary": [
+  [
+   "Token bucket",
+   "a counter that refills at a steady rate up to a cap; each request spends one token, and a request with no token waits."
+  ],
+  [
+   "Burst",
+   "the most tokens the bucket can hold, so the number of requests allowed back to back."
+  ],
+  [
+   "Hunk",
+   "a contiguous block of changed lines in a diff."
+  ]
+ ],
+ "dropped": [
+  "Dropped: 'the limiter makes the client safe against rate-limit errors' - nothing in the diff reads a failed response or a retry header."
+ ]
+}

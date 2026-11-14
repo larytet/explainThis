@@ -91,7 +91,7 @@
   "Y3": {"title": "Charge retries", "order": "Third: composes layers 1 and 2. This is where the purpose of the change lives.",
          "sum": "Charge now resends on error or 5xx, waiting between tries. Callers can wait much longer, and a retry could charge twice.",
          "claims": ["C1", "C9", "C4", "C6"], "ranges": [{"file": "payment/client.go", "new": [21, 29], "old": [21, 23]}],
-         "diagram": {"type": "flow", "caption": "Flow of Charge, built from C1 and C2.", "built_from": ["C1", "C2"],
+         "diagram": {"type": "flow", "caption": "Flow of Charge.", "built_from": ["C1", "C2"],
           "edges": [["send request", "ok and status < 500?", ""], ["ok and status < 500?", "return response", "yes"],
                     ["ok and status < 500?", "sleep backoff(base, attempt)", "no"],
                     ["sleep backoff(base, attempt)", "attempt <= MaxRetries?", ""],

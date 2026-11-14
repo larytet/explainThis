@@ -85,6 +85,8 @@ def classify(path):
         return "test"
     if re.search(r"(^|/)(migrations?|db/migrate)/", p):
         return "migration"
+    if base in ("cmakelists.txt", "makefile", "dockerfile", "requirements.txt", "go.mod", "pom.xml", "build.gradle") or p.endswith((".cmake",)):
+        return "config"
     if p.endswith((".md", ".rst", ".txt", ".adoc")) or re.search(r"(^|/)docs?/", p) or base in ("readme", "license", "changelog"):
         return "docs"
     if p.endswith((".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".conf", ".env", ".properties", ".tf", ".gradle")) \

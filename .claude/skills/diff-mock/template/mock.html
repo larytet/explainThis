@@ -270,7 +270,8 @@ function table(rows,file){
     `<tr class="${r.t[0]==="+"?"a":r.t[0]==="-"?"d":""}${hlcls(r)}"><td class="n">${r.o??""}</td><td class="n">${r.n??""}</td><td class="c">${hi(r.t,lang)}</td></tr>`).join("")}</table></div>`}
 const diffOfHunk=h=>table(hunkRows(h),HUNKD[h.id||h].file);
 function diffOfRanges(ranges,ctx=2){const byFile={};ranges.forEach(r=>(byFile[r.file]=byFile[r.file]||[]).push(r));
-  return Object.entries(byFile).map(([f,rs])=>table(pickRows(f,predRanges(rs),ctx),f)).join("")}
+  const multi=Object.keys(byFile).length>1;
+  return Object.entries(byFile).map(([f,rs])=>(multi?`<div class="note mono" style="padding:4px 10px;background:var(--code);border-top:1px solid var(--line)">${esc(f)}</div>`:"")+table(pickRows(f,predRanges(rs),ctx),f)).join("")}
 
 /* ---- claims ---- */
 function focusOK(i){if(!L[i])return false;const f=$("#focus").value,k=L[i].kind;

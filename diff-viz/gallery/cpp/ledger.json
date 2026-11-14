@@ -1,0 +1,859 @@
+{
+ "meta": {
+  "title": "Bounded, thread-safe resolver cache",
+  "repo": "resolver",
+  "base": "main",
+  "head": "lru-cache",
+  "pr": "Bound the resolver cache (LRU) and make it thread-safe"
+ },
+ "claims": {
+  "C1": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`LruCache` keeps a `std::list` ordered from most to least recently used, and a `std::unordered_map` from each key to its place in the list.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     10,
+     12
+    ],
+    [
+     "src/LruCache.h",
+     "new",
+     43,
+     46
+    ]
+   ],
+   "deps": []
+  },
+  "C2": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "The constructor throws `std::invalid_argument` when the capacity is 0.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     14,
+     16
+    ]
+   ],
+   "deps": []
+  },
+  "C3": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`get` returns `std::nullopt` for a missing key; on a hit it moves the entry to the front of the list and returns a copy of the value.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     18,
+     24
+    ]
+   ],
+   "deps": []
+  },
+  "C4": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`put` on an existing key replaces the value and moves the entry to the front; on a new key it adds the entry at the front and, when the size passes `capacity_`, erases the last entry from both the list and the map.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     26,
+     40
+    ]
+   ],
+   "deps": []
+  },
+  "C5": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "Every public operation holds the `std::mutex` for its whole body, so threads can share one cache without corrupting the list or the map.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     19,
+     19
+    ],
+    [
+     "src/LruCache.h",
+     "new",
+     27,
+     27
+    ],
+    [
+     "src/LruCache.h",
+     "new",
+     47,
+     47
+    ]
+   ],
+   "deps": [
+    "C3",
+    "C4"
+   ],
+   "why": "get and put each start with a lock_guard (lines 19 and 27) that lives until the function returns, and there is a single mutex member (line 47) guarding both containers."
+  },
+  "C6": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "`Resolver::resolve` returns the cached address when `get` finds one; otherwise it calls `lookup` and stores the result with `put`.",
+   "ev": [
+    [
+     "src/Resolver.cpp",
+     "new",
+     7,
+     12
+    ]
+   ],
+   "deps": []
+  },
+  "C7": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "risk",
+   "claim": "Two threads that miss on the same host at the same moment both call `lookup` and both store the answer: the cache stays correct, but the lookup runs twice.",
+   "ev": [
+    [
+     "src/Resolver.cpp",
+     "new",
+     8,
+     10
+    ]
+   ],
+   "deps": [
+    "C6"
+   ],
+   "why": "get, lookup and put are three separate steps (lines 8 to 10) and no lock spans them; each cache call takes and releases the mutex on its own."
+  },
+  "C8": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "interface",
+   "claim": "`Resolver` gets a constructor that takes a capacity (default 128) and now holds an `LruCache` instead of a `std::map`.",
+   "ev": [
+    [
+     "src/Resolver.h",
+     "new",
+     8,
+     8
+    ],
+    [
+     "src/Resolver.h",
+     "new",
+     12,
+     12
+    ],
+    [
+     "src/Resolver.h",
+     "old",
+     10,
+     10
+    ]
+   ],
+   "deps": []
+  },
+  "C9": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "risk",
+   "claim": "`LruCache` holds a `std::mutex`, which cannot be copied, so `Resolver` can no longer be copied; the `std::map` it held before could be.",
+   "ev": [
+    [
+     "src/LruCache.h",
+     "new",
+     47,
+     47
+    ],
+    [
+     "src/Resolver.h",
+     "new",
+     6,
+     12
+    ],
+    [
+     "src/Resolver.h",
+     "old",
+     10,
+     10
+    ]
+   ],
+   "deps": [],
+   "why": "A class with a non-copyable member has a deleted copy constructor, and Resolver now contains one through its LruCache member. Code that copied a Resolver would stop compiling; nothing in the diff does so."
+  },
+  "C10": {
+   "label": "unverified",
+   "lvl": "change",
+   "kind": "unknown",
+   "claim": "Whether 128 hosts is a sensible default for the real workload is not shown anywhere in the diff.",
+   "ev": [],
+   "deps": []
+  },
+  "C11": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "behavior",
+   "claim": "The new test fills a cache of 2 entries, reads \"a\", adds \"c\" and checks that \"b\" was evicted and \"c\" is present, then checks that capacity 0 throws.",
+   "ev": [
+    [
+     "tests/LruCacheTest.cpp",
+     "new",
+     8,
+     22
+    ]
+   ],
+   "deps": []
+  },
+  "C12": {
+   "label": "inferred",
+   "lvl": "symbol",
+   "kind": "test-gap",
+   "claim": "No test covers the resolver using the cache, replacing a value for an existing key, or two threads sharing one cache.",
+   "ev": [
+    [
+     "tests/LruCacheTest.cpp",
+     "new",
+     7,
+     23
+    ]
+   ],
+   "deps": [],
+   "why": "The only test builds an LruCache directly; it never calls put twice on the same key and starts no thread. The resolver has no test in the diff."
+  },
+  "C13": {
+   "label": "verified",
+   "lvl": "symbol",
+   "kind": "interface",
+   "claim": "CMake gains a test target `lru_test` built from the new test file and registered with `add_test`.",
+   "ev": [
+    [
+     "CMakeLists.txt",
+     "new",
+     5,
+     8
+    ]
+   ],
+   "deps": []
+  },
+  "C14": {
+   "label": "verified",
+   "lvl": "hunk",
+   "kind": "format-only",
+   "claim": "src/main.cpp is reformatted only: the one-line `main` becomes several lines and a blank line follows the include; the tokens are unchanged.",
+   "ev": [
+    [
+     "src/main.cpp",
+     "new",
+     2,
+     10
+    ],
+    [
+     "src/main.cpp",
+     "old",
+     3,
+     3
+    ]
+   ],
+   "deps": []
+  },
+  "C15": {
+   "label": "stated",
+   "lvl": "change",
+   "kind": "disagreement",
+   "claim": "The PR title says the cache is bounded and thread-safe. Bounded: yes, by its capacity. Thread-safe: each cache call is locked, but the resolver's get, lookup and put are separate steps, so two threads can repeat a lookup.",
+   "ev": [
+    [
+     "src/Resolver.cpp",
+     "new",
+     8,
+     10
+    ]
+   ],
+   "deps": [],
+   "src": "PR title (code partly agrees)"
+  }
+ },
+ "hunks": [
+  {
+   "id": "H1",
+   "text": "CMake: a test target",
+   "claims": [
+    "C13"
+   ]
+  },
+  {
+   "id": "H2",
+   "text": "new file: the LRU cache template",
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ]
+  },
+  {
+   "id": "H3",
+   "text": "resolve: get, lookup, put",
+   "claims": [
+    "C6",
+    "C7",
+    "C15"
+   ]
+  },
+  {
+   "id": "H4",
+   "text": "Resolver: capacity constructor and an LruCache member",
+   "claims": [
+    "C8",
+    "C9"
+   ]
+  },
+  {
+   "id": "H5",
+   "text": "main: reformatted only",
+   "claims": [
+    "C14"
+   ]
+  },
+  {
+   "id": "H6",
+   "text": "new test for the cache",
+   "claims": [
+    "C11",
+    "C12"
+   ]
+  }
+ ],
+ "symbols": [
+  {
+   "id": "S1",
+   "name": "LruCache",
+   "file": "src/LruCache.h",
+   "sig": "template class LruCache<Key, Value>",
+   "kind": "added",
+   "hunks": [
+    "H2"
+   ],
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "before": "(did not exist)",
+   "after": "A mutex-guarded LRU cache with get and put."
+  },
+  {
+   "id": "S2",
+   "name": "Resolver::resolve",
+   "file": "src/Resolver.cpp",
+   "sig": "std::string Resolver::resolve(host)",
+   "kind": "modified",
+   "hunks": [
+    "H3"
+   ],
+   "claims": [
+    "C6",
+    "C7",
+    "C15"
+   ],
+   "before": "Looked up and stored in an unbounded map.",
+   "after": "Calls get, then lookup and put on a miss."
+  },
+  {
+   "id": "S3",
+   "name": "Resolver",
+   "file": "src/Resolver.h",
+   "sig": "class Resolver",
+   "kind": "modified",
+   "hunks": [
+    "H4"
+   ],
+   "claims": [
+    "C8",
+    "C9",
+    "C10"
+   ],
+   "before": "Held a std::map.",
+   "after": "Takes a capacity and holds an LruCache."
+  },
+  {
+   "id": "S4",
+   "name": "LruCache test",
+   "file": "tests/LruCacheTest.cpp",
+   "sig": "int main()",
+   "kind": "added",
+   "hunks": [
+    "H6"
+   ],
+   "claims": [
+    "C11",
+    "C12"
+   ],
+   "before": "(did not exist)",
+   "after": "Checks eviction order and capacity 0."
+  },
+  {
+   "id": "S5",
+   "name": "lru_test target",
+   "file": "CMakeLists.txt",
+   "sig": "add_executable, add_test",
+   "kind": "added",
+   "hunks": [
+    "H1"
+   ],
+   "claims": [
+    "C13"
+   ],
+   "before": "No tests.",
+   "after": "One registered test."
+  },
+  {
+   "id": "S6",
+   "name": "main (format)",
+   "file": "src/main.cpp",
+   "sig": "int main()",
+   "kind": "format-only",
+   "hunks": [
+    "H5"
+   ],
+   "claims": [
+    "C14"
+   ],
+   "before": "same",
+   "after": "same"
+  }
+ ],
+ "components": [
+  {
+   "id": "K1",
+   "name": "LRU cache",
+   "role": "core to the change",
+   "desc": "A bounded, mutex-guarded cache that drops the least recently used entry.",
+   "claims": [
+    "C5",
+    "C1"
+   ],
+   "syms": [
+    "S1"
+   ],
+   "tests": "1 test",
+   "risk": false,
+   "terms": [
+    "LRU",
+    "Mutex"
+   ]
+  },
+  {
+   "id": "K2",
+   "name": "resolver",
+   "role": "core to the change",
+   "desc": "The resolver swaps its unbounded map for the cache; get, lookup and put are not atomic.",
+   "claims": [
+    "C8",
+    "C7",
+    "C9",
+    "C15"
+   ],
+   "syms": [
+    "S3",
+    "S2"
+   ],
+   "tests": "none",
+   "risk": true,
+   "terms": [
+    "Eviction"
+   ]
+  },
+  {
+   "id": "K3",
+   "name": "tests and build",
+   "role": "supporting",
+   "desc": "One test for the cache and a CMake target for it.",
+   "claims": [
+    "C11",
+    "C12",
+    "C13"
+   ],
+   "syms": [
+    "S4",
+    "S5"
+   ],
+   "tests": "n/a",
+   "risk": true,
+   "terms": []
+  },
+  {
+   "id": "K4",
+   "name": "main (format)",
+   "role": "supporting (format only)",
+   "desc": "Reformatted only. No behaviour change.",
+   "claims": [
+    "C14"
+   ],
+   "syms": [
+    "S6"
+   ],
+   "tests": "n/a",
+   "risk": false,
+   "terms": []
+  }
+ ],
+ "pieces": [
+  {
+   "id": "P1",
+   "name": "LRU cache",
+   "sub": "LruCache.h, new",
+   "comp": "K1",
+   "sym": "S1",
+   "risk": false
+  },
+  {
+   "id": "P2",
+   "name": "resolver",
+   "sub": "get-then-put race; not copyable",
+   "comp": "K2",
+   "sym": "S3",
+   "risk": true
+  },
+  {
+   "id": "P3",
+   "name": "tests and build",
+   "sub": "cache only: gap",
+   "comp": "K3",
+   "sym": "S4",
+   "risk": true
+  },
+  {
+   "id": "P4",
+   "name": "main (format)",
+   "sub": "folded",
+   "comp": "K4",
+   "sym": "S6",
+   "risk": false
+  }
+ ],
+ "change": {
+  "purpose": "Stop the resolver cache from growing without limit: replace the plain map with a mutex-guarded LRU cache of fixed capacity.",
+  "graph": [
+   {
+    "n": "main"
+   },
+   {
+    "n": "Resolver",
+    "chg": true
+   },
+   {
+    "n": "LruCache",
+    "chg": true
+   },
+   {
+    "n": "lookup (stub)"
+   }
+  ],
+  "flow": {
+   "text": "caller -> `resolve` -> `get`; on a miss `lookup`, then `put`.",
+   "claim": "C6"
+  },
+  "stated": [
+   "C15"
+  ],
+  "risks": [
+   "C7",
+   "C9",
+   "C12",
+   "C10"
+  ]
+ },
+ "cohorts": [
+  {
+   "id": "G1",
+   "name": "Bound and share the resolver cache",
+   "why": "One purpose: the cache has a fixed size and can be used from several threads.",
+   "layers": [
+    "Y1",
+    "Y2",
+    "Y3",
+    "Y4",
+    "Y5"
+   ]
+  },
+  {
+   "id": "G2",
+   "name": "Formatting only",
+   "why": "No behaviour change; folded by default.",
+   "layers": [
+    "Y6"
+   ]
+  }
+ ],
+ "layers": {
+  "Y1": {
+   "title": "The LRU cache",
+   "order": "Read first: the resolver is built on it.",
+   "sum": "A template cache of fixed capacity that evicts the least recently used entry, with one lock around every call.",
+   "claims": [
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5"
+   ],
+   "ranges": [
+    {
+     "file": "src/LruCache.h",
+     "new": [
+      1,
+      48
+     ]
+    }
+   ],
+   "diagram": {
+    "type": "flow",
+    "caption": "What put does.",
+    "built_from": [
+     "C4"
+    ],
+    "edges": [
+     [
+      "take the lock",
+      "key already stored?",
+      ""
+     ],
+     [
+      "key already stored?",
+      "replace the value, move it to the front",
+      "yes"
+     ],
+     [
+      "key already stored?",
+      "add it at the front",
+      "no"
+     ],
+     [
+      "add it at the front",
+      "over capacity?",
+      ""
+     ],
+     [
+      "over capacity?",
+      "erase the last entry from list and map",
+      "yes"
+     ]
+    ]
+   }
+  },
+  "Y2": {
+   "title": "The resolver uses it",
+   "order": "Second: composes layer 1. This is where the purpose lives.",
+   "sum": "The resolver takes a capacity and holds the cache; resolve is get, lookup, put, with no lock across the three.",
+   "claims": [
+    "C8",
+    "C6",
+    "C7",
+    "C9"
+   ],
+   "ranges": [
+    {
+     "file": "src/Resolver.h",
+     "new": [
+      2,
+      2
+     ],
+     "old": [
+      2,
+      2
+     ]
+    },
+    {
+     "file": "src/Resolver.h",
+     "new": [
+      4,
+      4
+     ]
+    },
+    {
+     "file": "src/Resolver.h",
+     "new": [
+      8,
+      8
+     ]
+    },
+    {
+     "file": "src/Resolver.h",
+     "new": [
+      12,
+      12
+     ],
+     "old": [
+      10,
+      10
+     ]
+    },
+    {
+     "file": "src/Resolver.cpp",
+     "new": [
+      8,
+      8
+     ],
+     "old": [
+      8,
+      9
+     ]
+    },
+    {
+     "file": "src/Resolver.cpp",
+     "new": [
+      10,
+      10
+     ],
+     "old": [
+      11,
+      11
+     ]
+    }
+   ],
+   "diagram": {
+    "type": "sequence",
+    "caption": "One call to resolve on a miss.",
+    "built_from": [
+     "C6",
+     "C8"
+    ],
+    "participants": [
+     "caller",
+     "Resolver",
+     "LruCache",
+     "lookup"
+    ],
+    "messages": [
+     [
+      "caller",
+      "Resolver",
+      "resolve(host)"
+     ],
+     [
+      "Resolver",
+      "LruCache",
+      "get(host)"
+     ],
+     [
+      "LruCache",
+      "Resolver",
+      "an address, or nothing"
+     ],
+     [
+      "Resolver",
+      "lookup",
+      "on a miss"
+     ],
+     [
+      "Resolver",
+      "LruCache",
+      "put(host, address)"
+     ]
+    ]
+   }
+  },
+  "Y3": {
+   "title": "Build: a test target",
+   "order": "Third: wires in the test of layer 4.",
+   "sum": "CMake registers one test executable.",
+   "claims": [
+    "C13"
+   ],
+   "ranges": [
+    {
+     "file": "CMakeLists.txt",
+     "new": [
+      5,
+      8
+     ]
+    }
+   ]
+  },
+  "Y4": {
+   "title": "Test and what is not covered",
+   "order": "Fourth: what the test checks and what it leaves out.",
+   "sum": "One test checks eviction order and capacity 0; the resolver, key replacement and threads are untested.",
+   "claims": [
+    "C11",
+    "C12"
+   ],
+   "ranges": [
+    {
+     "file": "tests/LruCacheTest.cpp",
+     "new": [
+      1,
+      24
+     ]
+    }
+   ]
+  },
+  "Y5": {
+   "title": "Does it do what the title says?",
+   "order": "Last: compares the change with the PR title and lists what is unknown.",
+   "sum": "Bounded, yes. Thread-safe only per call; the default of 128 is unchecked.",
+   "claims": [
+    "C15",
+    "C10"
+   ],
+   "ranges": []
+  },
+  "Y6": {
+   "title": "main reformatted",
+   "order": "Separate cohort, no link to the cache.",
+   "sum": "Spacing and line breaks only.",
+   "claims": [
+    "C14"
+   ],
+   "ranges": [
+    {
+     "file": "src/main.cpp",
+     "new": [
+      2,
+      10
+     ],
+     "old": [
+      3,
+      3
+     ]
+    }
+   ]
+  }
+ },
+ "glossary": [
+  [
+   "LRU",
+   "least recently used: when the cache is full, the entry that was used longest ago is dropped first."
+  ],
+  [
+   "Mutex",
+   "a lock that lets one thread at a time run the code it guards."
+  ],
+  [
+   "Eviction",
+   "removing an entry from a full cache to make room."
+  ],
+  [
+   "Hunk",
+   "a contiguous block of changed lines in a diff."
+  ]
+ ],
+ "dropped": [
+  "Dropped: 'the resolver is now fully thread-safe' - the cache calls are locked, but the resolver's get, lookup and put are separate steps."
+ ]
+}

@@ -126,7 +126,8 @@ dialog::backdrop{background:rgba(0,0,0,.45)}
 .files .cls{font-size:10px;color:var(--mute);border:1px solid var(--line);border-radius:4px;padding:0 4px}
 .gnav{display:none;gap:10px;align-items:center;flex-wrap:wrap}
 body.guided .gnav{display:flex}
-body.guided .zoom,body.guided #pv,body.guided #nv,body.guided #next,body.guided .zonly,body.guided .mini,body.guided .rs{display:none}
+body.guided .zoom,body.guided #pv,body.guided #nv,body.guided #next,body.guided .zonly,body.guided .mini{display:none}
+body.guided.nolist #rsl,body.guided.noevid #rsr{display:none}
 body.guided .main{grid-template-columns:var(--lw,230px) 1fr var(--rw,340px)}
 body.guided.nolist .main{grid-template-columns:1fr var(--rw,340px)}body.guided.nolist .outline{display:none}
 body.guided.noevid .main{grid-template-columns:var(--lw,230px) 1fr}body.guided.noevid .evid{display:none}

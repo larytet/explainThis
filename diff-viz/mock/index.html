@@ -111,6 +111,18 @@ body.guided .gnav{display:flex}
 body.guided .zoom,body.guided #pv,body.guided #nv,body.guided #next,body.guided .zonly{display:none}
 body.focus .outline,body.focus .evid,body.focus .mini,body.focus .rs{display:none}
 body.focus .main{grid-template-columns:1fr}
+.settings{display:none}body.showset .settings{display:flex}
+body.guided .mini{display:none}
+body.guided .main{grid-template-columns:var(--lw,230px) 1fr var(--rw,340px)}
+body.guided.nolist .main{grid-template-columns:1fr var(--rw,340px)}body.guided.nolist .outline{display:none}
+body.guided.noevid .main{grid-template-columns:var(--lw,230px) 1fr}body.guided.noevid .evid{display:none}
+body.guided.nolist.noevid .main{grid-template-columns:1fr}
+body.guided.focus .main{grid-template-columns:1fr}
+body.guided .rs{display:none}
+body.guided .canvas{max-width:980px;width:100%;margin:0 auto}
+details{margin:6px 0}summary{cursor:pointer;color:var(--mute);font-size:12.5px}
+.sumline{font-size:15px;margin:0 0 8px}
+.menu button{display:block;width:100%;text-align:left;margin:0 0 6px}
 .outline .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:10px 8px 2px}
 .outline a .tick{color:var(--ver)}
 .flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
@@ -128,11 +140,12 @@ body.focus .main{grid-template-columns:1fr}
 <div class="top">
   <h1>diff-viz</h1>
   <span class="mono">payments-svc &nbsp;main &larr; retry-backoff</span>
-  <span class="pill done" id="p1">Pass 1 bottom-up: 5 of 5 symbols read, 9 claims</span>
-  <span class="pill done" id="p2">Pass 2 top-down: ready</span>
+  <span class="pill done zonly" id="p1">Pass 1 bottom-up: 5 of 5 symbols read, 9 claims</span>
+  <span class="pill done zonly" id="p2">Pass 2 top-down: ready</span>
   <span class="spacer"></span>
-  <span class="frames"><span class="note">front end:</span>
+  <span class="frames zonly"><span class="note">front end:</span>
     <button data-f="app" class="on">Standalone</button><button data-f="gh">GitHub</button><button data-f="vs">VS Code</button></span>
+  <button id="view" title="Audience, focus, noise, detail, file order, side-by-side">View</button>
   <button id="lead" class="lead" title="Walk through the change one group at a time, grouped by meaning">Lead me</button>
   <button id="theme">Theme</button>
 </div>
@@ -149,10 +162,10 @@ body.focus .main{grid-template-columns:1fr}
 
 <div class="main" id="main">
   <aside class="outline"><h3>Outline (top-down)</h3><div id="outline"></div>
-    <h3 style="margin-top:16px">Files <span id="vprog" class="note"></span></h3><div class="files" id="files"></div>
+    <div class="zonly"><h3 style="margin-top:16px">Files <span id="vprog" class="note"></span></h3><div class="files" id="files"></div>
     <h3 style="margin-top:16px">Legend</h3>
     <div class="legend"><span class="chip verified">verified</span><span class="chip inferred">~ inferred</span><span class="chip stated">stated</span><span class="chip unverified">? unverified</span></div>
-    <p class="note">Mock data is illustrative. Line numbers refer to the sample diff in this page.</p>
+    <p class="note">Mock data is illustrative. Line numbers refer to the sample diff in this page.</p></div>
   </aside>
   <div class="canvas" id="canvas"></div>
   <div class="rs" id="rsl" title="Drag to resize"></div><div class="rs" id="rsr" title="Drag to resize"></div>
@@ -168,9 +181,9 @@ body.focus .main{grid-template-columns:1fr}
   <button id="pv" title="F7">&#9650; prev change</button><button id="nv" title="F8">&#9660; next change</button>
   <button id="next">Next piece &rarr;</button>
   <span class="gnav"><button id="gp" title="K">&larr; previous</button><span id="gpos" class="note"></span><button id="gn" class="lead" title="J">next &rarr;</button>
-    <label class="note"><input type="checkbox" id="gdone"> layer reviewed</label><button id="gz" title="Z">Focus (Z)</button></span>
-  <div class="cov" id="cov"></div>
-  <button id="gl">Glossary</button><button id="au">Audit</button><button id="md">Copy as Markdown</button>
+    <label class="note"><input type="checkbox" id="gdone"> layer reviewed</label><button id="gm" title="Panels, focus, glossary, audit, legend, keys">More</button></span>
+  <div class="cov zonly" id="cov"></div>
+  <span class="zonly"><button id="gl">Glossary</button><button id="au">Audit</button><button id="md">Copy as Markdown</button></span>
 </div>
 
 <dialog id="dlg"><div id="dlgc"></div><p style="text-align:right"><button onclick="dlg.close()">Close</button></p></dialog>
@@ -388,11 +401,11 @@ const COHORTS=[
  {id:"G1",name:"Retry failed charges",why:"One purpose: a charge that hits a transient error is resent after a growing delay.",layers:["Y1","Y2","Y3","Y4"]},
  {id:"G2",name:"Formatting only",why:"No behaviour change; folded by default.",layers:["Y5"]}];
 const LAYERS={
- Y1:{title:"Retry settings",order:"Read first: the later layers read these two values.",claims:["C3"],ranges:[["payment/config.go",10,13]]},
- Y2:{title:"Delay between attempts",order:"Second: Charge calls it, so read it before Charge.",claims:["C2"],ranges:[["payment/client.go",52,57]]},
- Y3:{title:"Charge retries",order:"Third: composes layers 1 and 2. This is where the purpose of the change lives.",claims:["C1","C9","C4","C6"],ranges:[["payment/client.go",40,51]],diagram:true},
- Y4:{title:"Test and what is not known",order:"Last in the cohort: what the test covers and what it does not.",claims:["C5","C7"],ranges:[["payment/client_test.go",10,14]]},
- Y5:{title:"Whitespace in checkout",order:"Separate cohort, no link to the retry change.",claims:["C8"],ranges:[["handlers/checkout.go",22,22]]}};
+ Y1:{sum:"Adds two settings, MaxRetries and BaseDelay. Their defaults are only in comments.",title:"Retry settings",order:"Read first: the later layers read these two values.",claims:["C3"],ranges:[["payment/config.go",10,13]]},
+ Y2:{sum:"A new helper doubles the wait on each attempt and caps it at 30 seconds.",title:"Delay between attempts",order:"Second: Charge calls it, so read it before Charge.",claims:["C2"],ranges:[["payment/client.go",52,57]]},
+ Y3:{sum:"Charge now resends on error or 5xx, waiting between tries. Callers can wait much longer, and a retry could charge twice.",title:"Charge retries",order:"Third: composes layers 1 and 2. This is where the purpose of the change lives.",claims:["C1","C9","C4","C6"],ranges:[["payment/client.go",40,51]],diagram:true},
+ Y4:{sum:"One test covers fail-twice-then-succeed. Running out of retries and 4xx are untested; provider dedup is unknown.",title:"Test and what is not known",order:"Last in the cohort: what the test covers and what it does not.",claims:["C5","C7"],ranges:[["payment/client_test.go",10,14]]},
+ Y5:{sum:"Whitespace only.",title:"Whitespace in checkout",order:"Separate cohort, no link to the retry change.",claims:["C8"],ranges:[["handlers/checkout.go",22,22]]}};
 const ORDER=Object.keys(LAYERS);
 const STEPS=["overview",...ORDER];
 const cohortOf=id=>COHORTS.find(c=>c.layers.includes(id));
@@ -401,10 +414,12 @@ function flowHtml(){
   return `<div class="flow">${n("send request")}${a}${n("ok and status &lt; 500?","dec")}<span class="lbl">yes</span>${a}${n("return response")}</div>
    <div class="flow">${n("ok and status &lt; 500?","dec")}<span class="lbl">no</span>${a}${n("sleep backoff(base, attempt)")}${a}${n("attempt &le; MaxRetries?","dec")}<span class="lbl">yes: send again</span></div>
    <div class="flow">${n("attempt &le; MaxRetries?","dec")}<span class="lbl">no</span>${a}${n("return last error")}</div>
-   <p class="note">Shown because this layer is a loop with three exits (a state transition). Built from C1 and C2, payment/client.go:43-50. Layers with no such structure stay text only.</p>`}
+   <p class="note" title="Shown because this layer is a loop with three exits. Layers with no such structure stay text only.">Flow of Charge, built from C1 and C2.</p>`}
+const RANK=["unverified","inferred","stated","verified"];
+const weakest=ids=>[...ids].sort((a,b)=>RANK.indexOf(L[a].label)-RANK.indexOf(L[b].label))[0];
+const compact=ids=>ids.filter(focusOK).map(i=>`<p>${esc(L[i].claim)} ${chip(i)}</p>`).join("");
 function renderGuided(){
   const i=st.step,id=STEPS[i],N=ORDER.length;let h="";
-  h+=`<p class="note">Snapshot <code>e41c9a0</code> (head of retry-backoff) <span class="pill done">up to date</span> &nbsp; The tool leads; you decide when to move on.</p>`;
   if(id==="overview"){
     h+=`<div class="block hero"><div class="bb"><h2>${COHORTS.length} groups of changes, ${N} layers</h2>
      <p>The change is grouped by meaning, not by file. Each group is read in order, one layer at a time. Every changed hunk is in exactly one layer, so nothing is skipped.</p></div></div>`+
@@ -413,8 +428,11 @@ function renderGuided(){
   } else {
     const y=LAYERS[id],c=cohortOf(id),n=ORDER.indexOf(id)+1;
     h+=`<div class="block" id="${id}"><div class="bh"><span class="t">Layer ${n} of ${N}: ${y.title}</span><span class="pill">${c.name}</span><span class="f">group ${COHORTS.indexOf(c)+1} of ${COHORTS.length}</span></div>
-     <div class="bb"><p class="note">${y.order}</p><h3>What this layer does</h3>${claimsHtml(y.claims)}${y.diagram?flowHtml():""}</div></div>
-     <div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f">${y.ranges.map(r=>r[0]+":"+r[1]+"-"+r[2]).join(", ")}</span></div>
+     <div class="bb"><p class="note">${y.order}</p><p class="sumline">${esc(y.sum)} ${chip(weakest(y.claims))}</p>
+      ${compact(y.claims.filter(c=>L[c].label!=="verified"))}
+      ${y.claims.some(c=>L[c].label==="verified")?`<details><summary>${y.claims.filter(c=>L[c].label==="verified").length} verified claim(s)</summary>${compact(y.claims.filter(c=>L[c].label==="verified"))}</details>`:""}
+      ${y.diagram?flowHtml():""}</div></div>
+     <div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f mono">${y.ranges.map(r=>r[0]+":"+r[1]+"-"+r[2]).join(", ")}</span></div>
      ${y.ranges.map(r=>diffFor(r[0],[r[1]-2,r[2]+2],null,false)).join("")}</div>`;
     if(i===STEPS.length-1){const d=ORDER.filter(l=>st.gviewed[l]).length;
       h+=`<div class="block hero"><div class="bb"><h3>End of the change</h3><p>${d} of ${N} layers marked reviewed. Open the audit log or the unverified list before you approve. <button data-gs="0">Back to overview</button></p></div></div>`}
@@ -428,17 +446,29 @@ function renderGuided(){
 }
 function gstep(i){st.step=Math.max(0,Math.min(STEPS.length-1,i));render();canvas.scrollTop=0;renderOutline();
   const y=LAYERS[STEPS[st.step]];if(y)showEv(y.claims[0])}
-function toggleFocus(){document.body.classList.toggle("focus");$("#gz").classList.toggle("on",document.body.classList.contains("focus"));buildMini()}
+function toggleFocus(){document.body.classList.toggle("focus");buildMini()}
+function togglePane(c){document.body.classList.toggle(c)}
+function moreMenu(){$("#dlgc").innerHTML=`<h3>More</h3><div class="menu">
+  <button onclick="togglePane('nolist');dlg.close()">Show or hide the layer list ( [ )</button>
+  <button onclick="togglePane('noevid');dlg.close()">Show or hide the evidence panel ( ] )</button>
+  <button onclick="dlg.close();toggleFocus()">Focus mode ( Z )</button>
+  <button onclick="dlg.close();$('#gl').click()">Glossary</button>
+  <button onclick="dlg.close();$('#au').click()">Audit log</button>
+  <button onclick="$('#md').click();dlg.close()">Copy as Markdown</button></div>
+  <div class="legend"><span class="chip verified">verified</span><span class="chip inferred">~ inferred</span><span class="chip stated">stated</span><span class="chip unverified">? unverified</span></div>
+  <p class="note">Snapshot e41c9a0 (head of retry-backoff), up to date. Layers cover 5 of 5 hunks, each in exactly one layer. Keys: J next, K previous, Z focus, [ and ] panels, Esc back.</p>`;dlg.showModal()}
+$("#gm").onclick=moreMenu;
+$("#view").onclick=()=>document.body.classList.toggle("showset");
 function setMode(m){st.mode=m;document.body.classList.toggle("guided",m==="guided");
-  if(m!=="guided"){document.body.classList.remove("focus")}
+  if(m!=="guided"){document.body.classList.remove("focus","nolist","noevid")}
   $("#lead").textContent=m==="guided"?"Back to zoom view":"Lead me";
   if(m==="guided"){st.step=0}
   renderOutline();render()}
 $("#lead").onclick=()=>setMode(st.mode==="guided"?"zoom":"guided");
-$("#gn").onclick=()=>gstep(st.step+1);$("#gp").onclick=()=>gstep(st.step-1);$("#gz").onclick=toggleFocus;
+$("#gn").onclick=()=>gstep(st.step+1);$("#gp").onclick=()=>gstep(st.step-1);
 $("#gdone").addEventListener("change",e=>{const id=STEPS[st.step];if(id!=="overview"){st.gviewed[id]=e.target.checked;renderOutline()}});
 document.addEventListener("keydown",e=>{if(st.mode!=="guided"||e.target.matches("input,select"))return;
-  if(e.key==="j")gstep(st.step+1);else if(e.key==="k")gstep(st.step-1);else if(e.key==="z")toggleFocus();
+  if(e.key==="j")gstep(st.step+1);else if(e.key==="k")gstep(st.step-1);else if(e.key==="z")toggleFocus();else if(e.key==="[")togglePane("nolist");else if(e.key==="]")togglePane("noevid");
   else if(e.key==="Escape"){if(document.body.classList.contains("focus"))toggleFocus();else setMode("zoom")}});
 /* ---- events ---- */
 document.addEventListener("click",e=>{

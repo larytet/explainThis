@@ -211,6 +211,9 @@ One at a time
 - R-GR13. Read-only (R-S1): comments on a layer's line ranges, a draft review and submission to the host belong to R-U21 and are
   not part of version 1.
 
+- R-GR14. Calm screen: the guided view follows the section 8.1 rules. At most three panels (layers, code, evidence), one
+  line of header, one line of footer, and everything else behind a menu.
+
 What differs from Change Stack, on purpose: every sentence carries a label (verified, inferred, stated, unverified) and cited
 lines that were checked mechanically (R-V1); the grouping and order rest on dependency edges, not on a model's opinion; the
 tool shows what it could not determine; and it runs over a local repository as well as a pull request.
@@ -312,12 +315,40 @@ Layout (all front ends)
   cited code with the cited lines highlighted, the entries it is built from, and the entries built from it.
 - R-U5. Bottom: the zoom bar (five labelled stops), the coverage meter, and the glossary and audit buttons. The tool never
   advances on its own; the user moves between pieces and levels (the skill's stop-and-wait rule). A "next piece" control exists.
-- R-U5a. In "Lead me" the bottom bar swaps the zoom slider for previous, next, "layer reviewed" and focus controls (R-GR3,
-  R-GR6, R-GR8); the left outline lists cohorts and their layers instead of pieces; the difference map and the evidence
-  panel stay. The "Lead me" button is in the top bar next to the theme toggle and reads "Back to zoom view" while active.
+- R-U5a. In "Lead me" the bottom bar swaps the zoom slider for previous, next, "layer reviewed" and a "More" menu (R-GR3,
+  R-GR6, section 8.1); the left outline lists cohorts and their layers instead of pieces; the evidence panel stays and the
+  difference map goes. The "Lead me" button is in the top bar next to the theme toggle and reads "Back to zoom view" while
+  active.
 - R-U6. Two Pass indicators are always visible: "Pass 1 bottom-up: n of m symbols read, k claims" and "Pass 2 top-down".
   While Pass 1 runs, the views already supported by finished parts are available; the rest show "reading". No abstract view is
   built from a part that is still unread.
+
+### 8.1 Calm layout (after the Change Stack screenshot)
+
+CodeRabbit's Change Stack screen has one thin header line, a narrow list of layers (title and one small line each), a diff
+with a two-line summary above it, and a collapsible context rail on the right. No settings row, no zoom bar, no meters. The
+mock had all of those on screen at once. The rules below take the same restraint, and keep the evidence rules of section 7.
+
+- R-U21a. Settings (audience, focus, noise, detail, file order, side-by-side) live behind one "View" button and are hidden
+  by default in both modes. The settings still apply; only the strip is hidden. A changed setting shows a dot on the button.
+- R-U21b. Header: one line. Source, "Lead me" or "Back to zoom view", "View", theme. Pass indicators, front-end switches and
+  similar status belong to the zoom view and to a menu, not to the guided header.
+- R-U21c. Footer in "Lead me": previous, position ("Layer 3 of 5"), next, "layer reviewed", "More". Coverage meter, glossary,
+  audit log, copy as Markdown, legend, snapshot details, panel toggles and keys are inside "More" (and keep their keys).
+- R-U21d. Left list: layers only, grouped by cohort, each with its title and a tick when reviewed. No file list and no legend
+  in this mode (the reviewed ticks replace the per-file boxes). The list can be hidden (`[`).
+- R-U21e. One summary per layer, at most two lines, with one label chip: the weakest label among the claims it is built from.
+  The claims behind the summary follow, with this rule for folding: `verified` claims fold under "n verified claims";
+  `inferred`, `stated` and `unverified` claims stay visible (R-Z7, R-E3). Nothing is removed from the ledger (R-D2).
+- R-U21f. Evidence references: in "Lead me" the per-claim `file:line` chips are replaced by the layer's ranges in the header of
+  the code card and by the evidence panel, which opens on a click on any label chip (R-Z6 still holds: one click reaches the
+  cited lines). Cited lines in the card are the layer's own lines plus two lines of context.
+- R-U21g. Evidence panel: collapsible (`]`), one claim at a time, opens on the layer's first claim, and shows only the selected
+  claim, its lines, and what it is built from. It does not repeat the layer's summary.
+- R-U21h. Unchanged code is not shown. A collapsed "n unmodified lines" row sits between hunks and expands in place (R-U19).
+- R-U21i. One accent colour. Colour is for the four labels and the diff; everything else is grey (R-U11: colour is never the
+  only carrier of a label).
+- R-U21j. The difference map (R-U14) belongs to the zoom view. In "Lead me" the outline and the position text do its job.
 
 Interaction
 
@@ -399,6 +430,9 @@ G. Parity. The same change and the same settings give the same blocks and labels
 H. Guided coverage. For every change in the corpus of test A, every hunk is owned by exactly one layer, no layer depends on a
    layer of another cohort, and reading the layers in order never shows a function before a layer that defines what it calls
    (checked against the call graph, not by a model).
+K. Calm layout. In "Lead me", at the default settings, the screen has no more than three panels, one header line and one footer
+   line; every item moved into a menu (R-U21a to R-U21j) is still reachable in at most two actions; no `inferred`, `stated`
+   or `unverified` claim is folded.
 I. Guided honesty. Every claim and every diagram edge shown in "Lead me" passes R-V1; a layer that has no structure worth a
    diagram has none; the end-of-route step lists 100 % of the `unverified` entries.
 J. Never auto-advance. In a scripted session the view stays on one layer until a next, previous or jump action.

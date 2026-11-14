@@ -1,0 +1,112 @@
+{
+ "meta": {"title": "Retry failed charges with backoff", "repo": "payments-svc", "base": "main", "head": "retry-backoff",
+          "pr": "payments-svc #482: make payments resilient to provider outages"},
+ "claims": {
+  "C1": {"label": "verified", "lvl": "symbol", "kind": "behavior",
+         "claim": "`Charge` now sends the request again, up to `MaxRetries` more times, when the call errors or the status is 500 or above.",
+         "ev": [["payment/client.go", "new", 20, 28]], "deps": []},
+  "C2": {"label": "verified", "lvl": "symbol", "kind": "behavior",
+         "claim": "`backoff` doubles the delay on each attempt (`base << attempt`) and caps it at 30 seconds.",
+         "ev": [["payment/client.go", "new", 31, 35]], "deps": []},
+  "C3": {"label": "verified", "lvl": "symbol", "kind": "interface",
+         "claim": "`Config` gains two fields, `MaxRetries` and `BaseDelay`; their defaults (3 and 200ms) are written in comments, not enforced in this diff.",
+         "ev": [["payment/config.go", "new", 6, 9]], "deps": []},
+  "C4": {"label": "inferred", "lvl": "symbol", "kind": "risk",
+         "claim": "`Charge` retries a POST that carries no idempotency key, so a retry after a lost response could charge twice.",
+         "why": "Lines 23 and 24 resend the same `newPost` request on every pass, and the diff sets no key or header on it (lines 21-28).",
+         "ev": [["payment/client.go", "new", 23, 24]], "deps": ["C1"]},
+  "C5": {"label": "verified", "lvl": "symbol", "kind": "behavior",
+         "claim": "`TestChargeRetriesThenSucceeds` covers a server that fails 2 times with 503 and then answers 200.",
+         "ev": [["payment/client_test.go", "new", 16, 22]], "deps": []},
+  "C5b": {"label": "inferred", "lvl": "symbol", "kind": "test-gap",
+          "claim": "No test in the diff covers retries running out, or a 4xx response.",
+          "why": "The only test added is lines 16-22 of client_test.go; it ends in success. The older `TestChargeOK` sets no retry settings.",
+          "ev": [["payment/client_test.go", "new", 16, 22]], "deps": ["C5"]},
+  "C6": {"label": "stated", "lvl": "change", "kind": "disagreement",
+         "claim": "The PR title says payments are now resilient to provider outages. The code retries only transient errors, with waits of up to 30 seconds; it does not queue or replay.",
+         "src": "PR title, payments-svc #482 (code partly agrees)",
+         "ev": [["payment/client.go", "new", 21, 28]], "deps": ["C1", "C2"]},
+  "C7": {"label": "unverified", "lvl": "change", "kind": "unknown",
+         "claim": "Whether the payment provider deduplicates repeated charges is not visible in this repository.",
+         "ev": [], "deps": ["C4"]},
+  "C8": {"label": "verified", "lvl": "hunk", "kind": "format-only",
+         "claim": "checkout.go changes whitespace only: the tokens before and after are identical.",
+         "ev": [["handlers/checkout.go", "new", 8, 8]], "deps": []},
+  "C9": {"label": "inferred", "lvl": "component", "kind": "behavior",
+         "claim": "The payment client now absorbs short provider outages inside one `Charge` call, so callers wait longer before an error (up to roughly the sum of the delays).",
+         "why": "From C1 (the loop) and C2 (the delays): the loop sleeps between attempts before it returns an error.",
+         "ev": [["payment/client.go", "new", 20, 35]], "deps": ["C1", "C2"]}
+ },
+ "hunks": [
+  {"id": "H1", "text": "Pay: whitespace only", "claims": ["C8"]},
+  {"id": "H2", "text": "Charge: single call replaced by a retry loop; new helper backoff", "claims": ["C1", "C4", "C2"]},
+  {"id": "H3", "text": "test file imports time", "claims": []},
+  {"id": "H4", "text": "one new test: retries then succeeds", "claims": ["C5", "C5b"]},
+  {"id": "H5", "text": "two retry settings added to Config", "claims": ["C3"]}
+ ],
+ "symbols": [
+  {"id": "S1", "name": "Charge", "file": "payment/client.go", "sig": "func (*Client) Charge(ctx, ChargeReq)", "kind": "modified",
+   "hunks": ["H2"], "ranges": [{"file": "payment/client.go", "new": [20, 29], "old": [20, 23]}], "claims": ["C1", "C4"],
+   "before": "Sends one request; returns the first error.", "after": "Retries on error or 5xx, sleeping between attempts, then returns the last error."},
+  {"id": "S2", "name": "backoff", "file": "payment/client.go", "sig": "func backoff(base, attempt)", "kind": "added",
+   "hunks": ["H2"], "ranges": [{"file": "payment/client.go", "new": [30, 35]}], "claims": ["C2"],
+   "before": "(did not exist)", "after": "Delay = base << attempt, capped at 30s."},
+  {"id": "S3", "name": "Config", "file": "payment/config.go", "sig": "type Config struct", "kind": "modified",
+   "hunks": ["H5"], "claims": ["C3"], "before": "Timeout only.", "after": "Adds MaxRetries and BaseDelay."},
+  {"id": "S4", "name": "TestChargeRetriesThenSucceeds", "file": "payment/client_test.go", "sig": "func TestChargeRetriesThenSucceeds(t)", "kind": "added",
+   "hunks": ["H3", "H4"], "claims": ["C5", "C5b"], "before": "(did not exist)", "after": "Covers 2 failures, then success."},
+  {"id": "S5", "name": "Checkout.Pay (format)", "file": "handlers/checkout.go", "sig": "formatting", "kind": "format-only",
+   "hunks": ["H1"], "claims": ["C8"], "before": "same", "after": "same"}
+ ],
+ "components": [
+  {"id": "K1", "name": "payment client", "role": "core to the change",
+   "desc": "Charges now survive brief provider errors by retrying with a capped delay. Callers can wait much longer before an error.",
+   "claims": ["C9", "C4", "C6"], "syms": ["S1", "S2", "S3", "S4"], "tests": "1 test, no exhaustion case", "risk": true, "terms": ["Backoff", "Idempotency key"]},
+  {"id": "K2", "name": "checkout handler", "role": "supporting (format only)", "desc": "Whitespace only. No behaviour change.",
+   "claims": ["C8"], "syms": ["S5"], "tests": "n/a", "risk": false, "terms": []}
+ ],
+ "pieces": [
+  {"id": "P1", "name": "payment client", "sub": "client.go, risk: double charge", "comp": "K1", "sym": "S1", "risk": true},
+  {"id": "P2", "name": "retry settings", "sub": "config.go", "comp": "K1", "sym": "S3", "risk": false},
+  {"id": "P3", "name": "tests", "sub": "client_test.go: gap", "comp": "K1", "sym": "S4", "risk": true},
+  {"id": "P4", "name": "checkout (format)", "sub": "folded", "comp": "K2", "sym": "S5", "risk": false}
+ ],
+ "change": {
+  "purpose": "Make the payment client retry failed charges with a capped, doubling delay. It touches one component and does not change what callers send.",
+  "graph": [{"n": "checkout handler (format only)"}, {"n": "payment client", "chg": true}, {"n": "payment provider (external)"}],
+  "flow": {"text": "checkout -> `Charge` -> provider. Now: on error or 5xx, wait and resend, up to `MaxRetries` times, then return the last error.", "claim": "C9"},
+  "stated": ["C6"], "risks": ["C4", "C7", "C5b"]
+ },
+ "cohorts": [
+  {"id": "G1", "name": "Retry failed charges", "why": "One purpose: a charge that hits a transient error is resent after a growing delay.", "layers": ["Y1", "Y2", "Y3", "Y4"]},
+  {"id": "G2", "name": "Formatting only", "why": "No behaviour change; folded by default.", "layers": ["Y5"]}
+ ],
+ "layers": {
+  "Y1": {"title": "Retry settings", "order": "Read first: the later layers read these two values.",
+         "sum": "Adds two settings, MaxRetries and BaseDelay. Their defaults are only in comments.", "claims": ["C3"],
+         "ranges": [{"file": "payment/config.go", "new": [7, 9], "old": [7, 7]}]},
+  "Y2": {"title": "Delay between attempts", "order": "Second: Charge calls it, so read it before Charge.",
+         "sum": "A new helper doubles the wait on each attempt and caps it at 30 seconds.", "claims": ["C2"],
+         "ranges": [{"file": "payment/client.go", "new": [30, 34]}]},
+  "Y3": {"title": "Charge retries", "order": "Third: composes layers 1 and 2. This is where the purpose of the change lives.",
+         "sum": "Charge now resends on error or 5xx, waiting between tries. Callers can wait much longer, and a retry could charge twice.",
+         "claims": ["C1", "C9", "C4", "C6"], "ranges": [{"file": "payment/client.go", "new": [21, 29], "old": [21, 23]}],
+         "diagram": {"type": "flow", "caption": "Flow of Charge, built from C1 and C2.", "built_from": ["C1", "C2"],
+          "edges": [["send request", "ok and status < 500?", ""], ["ok and status < 500?", "return response", "yes"],
+                    ["ok and status < 500?", "sleep backoff(base, attempt)", "no"],
+                    ["sleep backoff(base, attempt)", "attempt <= MaxRetries?", ""],
+                    ["attempt <= MaxRetries?", "send request", "yes"], ["attempt <= MaxRetries?", "return last error", "no"]]}},
+  "Y4": {"title": "Test and what is not known", "order": "Last in the cohort: what the test covers and what it does not.",
+         "sum": "One test covers fail-twice-then-succeed. Running out of retries and 4xx are untested; provider dedup is unknown.",
+         "claims": ["C5", "C5b", "C7"], "ranges": [{"file": "payment/client_test.go", "new": [6, 6]}, {"file": "payment/client_test.go", "new": [15, 22]}]},
+  "Y5": {"title": "Whitespace in checkout", "order": "Separate cohort, no link to the retry change.", "sum": "Whitespace only.",
+         "claims": ["C8"], "ranges": [{"file": "handlers/checkout.go", "new": [8, 8], "old": [8, 8]}]}
+ },
+ "glossary": [
+  ["Idempotency key", "a unique token sent with a request so the server can recognise and ignore a repeat of the same request."],
+  ["Backoff", "waiting longer after each failed attempt before trying again (here doubling, capped at 30s). payment/client.go:31-35."],
+  ["Hunk", "a contiguous block of changed lines in a diff."],
+  ["Symbol", "a function, type or constant a parser can name."]
+ ],
+ "dropped": ["Dropped: 'retries are safe because the endpoint is idempotent' - no cited line states this (R-V1.4: the code does not say it)."]
+}

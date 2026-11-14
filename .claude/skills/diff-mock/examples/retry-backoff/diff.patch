@@ -1,0 +1,78 @@
+diff --git a/handlers/checkout.go b/handlers/checkout.go
+index 7900aea..3305e0d 100644
+--- a/handlers/checkout.go
++++ b/handlers/checkout.go
+@@ -5,5 +5,5 @@ import "context"
+ type Checkout struct{ pay Payer }
+ 
+ func (h *Checkout) Pay(ctx context.Context, req Req) error {
+-	return  h.pay.Charge(ctx,req)
++	return h.pay.Charge(ctx, req)
+ }
+diff --git a/payment/client.go b/payment/client.go
+index 876f6c4..5579c8a 100644
+--- a/payment/client.go
++++ b/payment/client.go
+@@ -18,9 +18,20 @@ func NewClient(url string, cfg Config) *Client {
+ }
+ 
+ func (c *Client) Charge(ctx context.Context, req ChargeReq) (*ChargeResp, error) {
+-	resp, err := c.http.Do(newPost(ctx, c.url, req))
+-	if err != nil { return nil, err }
+-	return decode(resp)
++	var lastErr error
++	for attempt := 0; attempt <= c.cfg.MaxRetries; attempt++ {
++		resp, err := c.http.Do(newPost(ctx, c.url, req))
++		if err == nil && resp.StatusCode < 500 { return decode(resp) }
++		lastErr = err
++		time.Sleep(backoff(c.cfg.BaseDelay, attempt))
++	}
++	return nil, lastErr
++}
++
++func backoff(base time.Duration, attempt int) time.Duration {
++	d := base << attempt
++	if d > 30*time.Second { return 30 * time.Second }
++	return d
+ }
+ 
+ func decode(resp *http.Response) (*ChargeResp, error) {
+diff --git a/payment/client_test.go b/payment/client_test.go
+index aa07846..e437c7e 100644
+--- a/payment/client_test.go
++++ b/payment/client_test.go
+@@ -3,6 +3,7 @@ package payment
+ import (
+ 	"context"
+ 	"testing"
++	"time"
+ )
+ 
+ func TestChargeOK(t *testing.T) {
+@@ -11,3 +12,11 @@ func TestChargeOK(t *testing.T) {
+ 		t.Fatal(err)
+ 	}
+ }
++
++func TestChargeRetriesThenSucceeds(t *testing.T) {
++	srv := flaky(2) // fails twice with 503, then 200
++	c := NewClient(srv.URL, Config{MaxRetries: 3, BaseDelay: time.Millisecond})
++	if _, err := c.Charge(context.Background(), ChargeReq{}); err != nil {
++		t.Fatal(err)
++	}
++}
+diff --git a/payment/config.go b/payment/config.go
+index 031f024..50b4c4d 100644
+--- a/payment/config.go
++++ b/payment/config.go
+@@ -4,7 +4,9 @@ import "time"
+ 
+ // Config holds the client settings.
+ type Config struct {
+-	Timeout time.Duration
++	MaxRetries int           // default 3
++	BaseDelay  time.Duration // default 200ms
++	Timeout    time.Duration
+ }
+ 
+ func DefaultConfig() Config {

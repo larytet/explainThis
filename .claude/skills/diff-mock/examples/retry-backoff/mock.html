@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>diff-viz mock</title>
+<style>
+/* Theme: tokens on :root; dark under prefers-color-scheme unless the user forced light; forced dark under [data-theme=dark]. */
+:root{
+  --bg:#f6f7f9;--panel:#fff;--ink:#1c2128;--mute:#667085;--line:#d8dde5;--accent:#2f6fed;--on-accent:#fff;
+  --add:#e6f6ea;--addink:#17632b;--del:#fdecec;--delink:#a1262b;--code:#f0f2f5;
+  --ver:#1a7f37;--inf:#9a6700;--sta:#6639ba;--unv:#cf222e;--shadow:0 1px 2px rgba(0,0,0,.06);
+  --tk-kw:#a626a4;--tk-str:#0b7a3b;--tk-num:#b35900;--tk-cm:#8a94a3;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0f1318;--panel:#171c23;--ink:#e6e9ee;--mute:#98a2b3;--line:#2b333d;--accent:#6f9bff;--on-accent:#0b1220;
+  --add:#12301b;--addink:#7ee29a;--del:#3a1618;--delink:#ff9aa0;--code:#1e242c;
+  --ver:#56d364;--inf:#e3b341;--sta:#b392f0;--unv:#ff7b72;--shadow:0 1px 2px rgba(0,0,0,.4);
+  --tk-kw:#d2a8ff;--tk-str:#7ee787;--tk-num:#ffa657;--tk-cm:#7d8590;color-scheme:dark}}
+:root[data-theme=dark]{
+  --bg:#0f1318;--panel:#171c23;--ink:#e6e9ee;--mute:#98a2b3;--line:#2b333d;--accent:#6f9bff;--on-accent:#0b1220;
+  --add:#12301b;--addink:#7ee29a;--del:#3a1618;--delink:#ff9aa0;--code:#1e242c;
+  --ver:#56d364;--inf:#e3b341;--sta:#b392f0;--unv:#ff7b72;--shadow:0 1px 2px rgba(0,0,0,.4);
+  --tk-kw:#d2a8ff;--tk-str:#7ee787;--tk-num:#ffa657;--tk-cm:#7d8590;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;height:100vh;display:flex;flex-direction:column}
+button,select{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,.mono{font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
+p code,.note code,.bb code{background:var(--code);border-radius:4px;padding:0 4px}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.top h1{font-size:15px;margin:0}
+.pill{border:1px solid var(--line);border-radius:99px;padding:2px 10px;font-size:12px;color:var(--mute)}
+.pill.done{color:var(--ver);border-color:var(--ver)}
+.spacer{flex:1}
+.frames button.on,button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+.lead{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:600}
+.settings{display:none;gap:10px;flex-wrap:wrap;align-items:center;padding:6px 16px;background:var(--panel);border-bottom:1px solid var(--line);font-size:12.5px}
+body.showset .settings{display:flex}
+.settings label{display:flex;gap:5px;align-items:center;color:var(--mute)}
+.main{flex:1;display:grid;grid-template-columns:var(--lw,230px) 1fr 16px var(--rw,340px);position:relative;min-height:0}
+aside,.canvas{overflow:auto;padding:12px}
+.outline{background:var(--panel);border-right:1px solid var(--line)}
+.evid{background:var(--panel);border-left:1px solid var(--line)}
+.outline h3,.evid h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:4px 0 8px}
+.outline a{display:block;padding:6px 8px;border-radius:6px;color:inherit;text-decoration:none;cursor:pointer}
+.outline a:hover,.outline a.on{background:var(--code)}
+.outline small{display:block;color:var(--mute)}
+.outline .grp{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:10px 8px 2px}
+.outline .tick{color:var(--ver)}
+.risk{color:var(--unv)}
+.block{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin:0 0 12px;box-shadow:var(--shadow);overflow:hidden}
+@media (prefers-reduced-motion:no-preference){.block{animation:fade .25s}@keyframes fade{from{opacity:.3;transform:translateY(3px)}to{opacity:1;transform:none}}}
+.block.sel{outline:2px solid var(--accent)}
+.block.unverified{border-style:dashed;border-color:var(--unv)}
+.bh{display:flex;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bh .t{font-weight:600}.bh .f{color:var(--mute)}
+.bb{padding:10px 12px}.bb p{margin:0 0 6px}
+.chip{display:inline-flex;gap:4px;align-items:center;border:1px solid currentColor;border-radius:99px;padding:0 8px;font-size:11.5px;cursor:pointer;background:transparent}
+.chip.verified{color:var(--ver)}.chip.inferred{color:var(--inf)}.chip.stated{color:var(--sta)}.chip.unverified{color:var(--unv);border-style:dashed}
+.ev{font-size:11.5px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:0 6px;cursor:pointer;background:var(--code)}
+.zb{margin-left:auto;display:flex;gap:4px}.zb button{padding:0 8px;line-height:1.4}
+.ovr{font-size:11px;color:var(--accent)}
+.diff{width:100%;border-collapse:collapse}
+.diff td{padding:0 8px;white-space:pre;vertical-align:top}
+.diff td.n{color:var(--mute);width:1%;text-align:right;user-select:none}
+.diff tr.a{background:var(--add)}.diff tr.a td.c{color:var(--addink)}
+.diff tr.d{background:var(--del)}.diff tr.d td.c{color:var(--delink)}
+.diff tr.hl td.c{box-shadow:inset 3px 0 var(--accent)}
+.diff tr.sep td{background:var(--code);color:var(--mute);font-size:11px;text-align:center;padding:1px 8px}
+.diff .tk-kw{color:var(--tk-kw)}.diff .tk-str{color:var(--tk-str)}.diff .tk-num{color:var(--tk-num)}.diff .tk-cm{color:var(--tk-cm);font-style:italic}
+.diff tr.a .tk-kw,.diff tr.a .tk-str,.diff tr.a .tk-num,.diff tr.a .tk-cm,.diff tr.d .tk-kw,.diff tr.d .tk-str,.diff tr.d .tk-num,.diff tr.d .tk-cm{filter:none}
+.diff.split td.c{width:50%}
+.diff.split td.c.d{background:var(--del);color:var(--delink)}.diff.split td.c.a{background:var(--add);color:var(--addink)}
+.diff.split td.e{background:var(--code)}.diff.split td.mid{width:6px;background:var(--line);padding:0}
+.diffwrap{overflow:auto;background:var(--panel)}
+.fold{background:var(--code);color:var(--mute);text-align:center;border-radius:6px;padding:4px;margin:0 0 12px;font-size:12.5px;cursor:pointer;border:1px solid var(--line)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cols div{background:var(--code);border-radius:6px;padding:6px 8px}
+.cols b{display:block;font-size:11px;text-transform:uppercase;color:var(--mute)}
+.hero{font-size:15px}.hero h2{margin:0 0 6px;font-size:18px}
+.graph{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.node{border:1px solid var(--line);border-radius:8px;padding:4px 10px;background:var(--code)}
+.node.chg{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,var(--panel));font-weight:600}
+.node.dec{border-radius:99px}
+.arrow,.lbl{color:var(--mute)}.lbl{font-size:11.5px}
+.dg{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:8px 0;background:var(--bg)}
+.dg h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.dg .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0}
+.dg .ent{display:inline-block;vertical-align:top;border:1px solid var(--line);border-radius:6px;margin:0 8px 8px 0;background:var(--panel)}
+.dg .ent b{display:block;padding:2px 10px;border-bottom:1px solid var(--line);background:var(--code)}
+.dg .ent div{padding:0 10px;font:12px ui-monospace,Menlo,monospace}
+.bar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:var(--panel);border-top:1px solid var(--line)}
+.zoom{flex:1;min-width:300px}.zoom input{width:100%;accent-color:var(--accent)}
+.stops{display:flex;justify-content:space-between;font-size:11.5px;color:var(--mute)}
+.stops span.on{color:var(--accent);font-weight:700}
+.cov{min-width:200px;font-size:12px;color:var(--mute)}
+.meter{height:6px;border-radius:3px;background:var(--del);overflow:hidden;margin-top:3px}
+.meter i{display:block;height:100%;background:var(--ver)}
+.note{font-size:12px;color:var(--mute)}
+.sumline{font-size:15px;margin:0 0 8px}
+details{margin:6px 0}summary{cursor:pointer;color:var(--mute);font-size:12.5px}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);max-width:620px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.menu button{display:block;width:100%;text-align:left;margin:0 0 6px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.coh{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px;background:var(--code)}
+.coh h3{margin:0 0 4px;font-size:14px}.coh button{margin:4px 6px 0 0}
+.ghbar{display:none;padding:8px 16px;background:#f6f8fa;color:#1f2328;border-bottom:1px solid #d0d7de;font-size:13px}
+.frame-gh .ghbar{display:block}
+.vsbar{display:none;padding:4px 12px;background:#252526;color:#ccc;font-size:12px}
+.frame-vs .vsbar{display:block}
+.rs{position:absolute;top:0;bottom:0;width:8px;cursor:col-resize;z-index:5;touch-action:none}
+.rs:hover,.rs.drag{background:color-mix(in srgb,var(--accent) 40%,transparent)}
+#rsl{left:calc(var(--lw,230px) - 4px)}#rsr{right:calc(var(--rw,340px) - 4px)}
+.mini{position:relative;background:var(--code);border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.mini i{position:absolute;left:2px;right:2px;min-height:4px;border-radius:2px;cursor:pointer;opacity:.85;background:var(--ver)}
+.mini i.inferred{background:var(--inf)}.mini i.stated{background:var(--sta)}.mini i.unverified{background:var(--unv)}.mini i.fold{background:var(--mute)}
+.mini b{position:absolute;left:0;right:0;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);pointer-events:none}
+.files label{display:flex;gap:6px;align-items:center;padding:3px 8px;font-size:12.5px}
+.files .cnt{margin-left:auto;font-size:11.5px}.cnt .p{color:var(--addink)}.cnt .m{color:var(--delink)}
+.files .done span.nm{text-decoration:line-through;color:var(--mute)}
+.files .cls{font-size:10px;color:var(--mute);border:1px solid var(--line);border-radius:4px;padding:0 4px}
+.gnav{display:none;gap:10px;align-items:center;flex-wrap:wrap}
+body.guided .gnav{display:flex}
+body.guided .zoom,body.guided #pv,body.guided #nv,body.guided #next,body.guided .zonly,body.guided .mini,body.guided .rs{display:none}
+body.guided .main{grid-template-columns:var(--lw,230px) 1fr var(--rw,340px)}
+body.guided.nolist .main{grid-template-columns:1fr var(--rw,340px)}body.guided.nolist .outline{display:none}
+body.guided.noevid .main{grid-template-columns:var(--lw,230px) 1fr}body.guided.noevid .evid{display:none}
+body.guided.nolist.noevid .main{grid-template-columns:1fr}
+body.focus .outline,body.focus .evid,body.focus .mini,body.focus .rs{display:none}
+body.guided.focus .main,body.focus .main{grid-template-columns:1fr}
+body.guided .canvas{max-width:980px;width:100%;margin:0 auto}
+.frame-gh .canvas{background:var(--bg)}
+@media (max-width:900px){.main,body.guided .main{grid-template-columns:1fr}.outline,.evid,.mini,.rs{display:none}}
+</style>
+</head>
+<body>
+<div class="ghbar" id="ghbar"></div>
+<div class="vsbar" id="vsbar"></div>
+
+<div class="top">
+  <h1>diff-viz</h1>
+  <span class="mono" id="src"></span>
+  <span class="pill done zonly" id="p1"></span>
+  <span class="pill done zonly" id="p2">Pass 2 top-down: ready</span>
+  <span class="spacer"></span>
+  <span class="frames zonly"><span class="note">front end:</span>
+    <button data-f="app" class="on">Standalone</button><button data-f="gh">GitHub</button><button data-f="vs">VS Code</button></span>
+  <button id="view" title="Audience, focus, noise, detail, file order, side-by-side">View</button>
+  <button id="lead" class="lead" title="Walk through the change one group at a time, grouped by meaning">Lead me</button>
+  <button id="theme" title="Theme: auto, light, dark">Theme</button>
+</div>
+
+<div class="settings">
+  <label>Audience <select id="aud"><option>expert</option><option>new to this codebase</option><option>new to the language</option></select></label>
+  <label>Focus <select id="focus"><option>everything</option><option>behaviour</option><option>risks</option><option>tests</option></select></label>
+  <label>Noise <select id="noise"><option value="fold">fold format-only and generated</option><option value="tests">also fold tests</option><option value="all">show all</option></select></label>
+  <label>Detail <select id="det"><option>normal</option><option>brief</option><option>long</option></select></label>
+  <label><input type="checkbox" id="order"> file order</label>
+  <label><input type="checkbox" id="split"> side-by-side (L0)</label>
+  <span class="note">Settings change presentation only. They never remove a claim or raise a label.</span>
+</div>
+
+<div class="main" id="main">
+  <aside class="outline" aria-label="Outline"><h3 id="olh">Outline (top-down)</h3><div id="outline"></div>
+    <div class="zonly"><h3 style="margin-top:16px">Files <span id="vprog" class="note"></span></h3><div class="files" id="files"></div>
+    <h3 style="margin-top:16px">Legend</h3>
+    <div class="legend"><span class="chip verified">verified</span><span class="chip inferred">~ inferred</span><span class="chip stated">stated</span><span class="chip unverified">? unverified</span></div>
+    <p class="note" id="foot"></p></div>
+  </aside>
+  <div class="canvas" id="canvas" aria-live="polite"></div>
+  <div class="rs" id="rsl" title="Drag to resize"></div><div class="rs" id="rsr" title="Drag to resize"></div>
+  <div class="mini" id="mini" title="Difference map (click to jump). Colour = label."></div>
+  <aside class="evid" id="evid" aria-label="Evidence"></aside>
+</div>
+
+<div class="bar">
+  <div class="zoom">
+    <input type="range" id="z" min="0" max="4" step="1" value="2" aria-label="Zoom level">
+    <div class="stops" id="stops"></div>
+  </div>
+  <button id="pv" title="F7">&#9650; prev change</button><button id="nv" title="F8">&#9660; next change</button>
+  <button id="next">Next piece &rarr;</button>
+  <span class="gnav"><button id="gp" title="K">&larr; previous</button><span id="gpos" class="note"></span><button id="gn" class="lead" title="J">next &rarr;</button>
+    <label class="note"><input type="checkbox" id="gdone"> layer reviewed</label><button id="gm" title="Panels, focus, glossary, audit, legend, keys">More</button></span>
+  <div class="cov zonly" id="cov"></div>
+  <span class="zonly"><button id="gl">Glossary</button><button id="au">Audit</button><button id="md">Copy as Markdown</button></span>
+</div>
+
+<dialog id="dlg"><div id="dlgc"></div><p style="text-align:right"><button onclick="dlg.close()">Close</button></p></dialog>
+
+<script type="application/json" id="dv-data">{"diff":{"meta":{"source":"patch","files":4,"hunks":5,"added":27,"removed":5},"files":[{"path":"handlers/checkout.go","old_path":null,"status":"modified","binary":false,"lang":"go","cls":"source","added":1,"removed":1,"fmt_only":true,"hunks":[{"id":"H1","header":"@@ -5,5 +5,5 @@ import \"context\"","fn":"import \"context\"","old_start":5,"old_len":5,"new_start":5,"new_len":5,"fmt":true,"comment_only":false,"symbols":[{"name":"Checkout","kind_of":"type","change":"context"},{"name":"Pay","kind_of":"function","change":"context"}],"lines":[{"o":5,"n":5,"t":" type Checkout struct{ pay Payer }"},{"o":6,"n":6,"t":" "},{"o":7,"n":7,"t":" func (h *Checkout) Pay(ctx context.Context, req Req) error {"},{"o":8,"n":null,"t":"-\treturn  h.pay.Charge(ctx,req)"},{"o":null,"n":8,"t":"+\treturn h.pay.Charge(ctx, req)"},{"o":9,"n":9,"t":" }"}]}]},{"path":"payment/client.go","old_path":null,"status":"modified","binary":false,"lang":"go","cls":"source","added":14,"removed":3,"fmt_only":false,"hunks":[{"id":"H2","header":"@@ -18,9 +18,20 @@ func NewClient(url string, cfg Config) *Client {","fn":"func NewClient(url string, cfg Config) *Client {","old_start":18,"old_len":9,"new_start":18,"new_len":20,"fmt":false,"comment_only":false,"symbols":[{"name":"Charge","kind_of":"function","change":"context"},{"name":"backoff","kind_of":"function","change":"added"},{"name":"decode","kind_of":"function","change":"context"},{"name":"NewClient","kind_of":"function","change":"context"}],"lines":[{"o":18,"n":18,"t":" }"},{"o":19,"n":19,"t":" "},{"o":20,"n":20,"t":" func (c *Client) Charge(ctx context.Context, req ChargeReq) (*ChargeResp, error) {"},{"o":21,"n":null,"t":"-\tresp, err := c.http.Do(newPost(ctx, c.url, req))"},{"o":22,"n":null,"t":"-\tif err != nil { return nil, err }"},{"o":23,"n":null,"t":"-\treturn decode(resp)"},{"o":null,"n":21,"t":"+\tvar lastErr error"},{"o":null,"n":22,"t":"+\tfor attempt := 0; attempt <= c.cfg.MaxRetries; attempt++ {"},{"o":null,"n":23,"t":"+\t\tresp, err := c.http.Do(newPost(ctx, c.url, req))"},{"o":null,"n":24,"t":"+\t\tif err == nil && resp.StatusCode < 500 { return decode(resp) }"},{"o":null,"n":25,"t":"+\t\tlastErr = err"},{"o":null,"n":26,"t":"+\t\ttime.Sleep(backoff(c.cfg.BaseDelay, attempt))"},{"o":null,"n":27,"t":"+\t}"},{"o":null,"n":28,"t":"+\treturn nil, lastErr"},{"o":null,"n":29,"t":"+}"},{"o":null,"n":30,"t":"+"},{"o":null,"n":31,"t":"+func backoff(base time.Duration, attempt int) time.Duration {"},{"o":null,"n":32,"t":"+\td := base << attempt"},{"o":null,"n":33,"t":"+\tif d > 30*time.Second { return 30 * time.Second }"},{"o":null,"n":34,"t":"+\treturn d"},{"o":24,"n":35,"t":" }"},{"o":25,"n":36,"t":" "},{"o":26,"n":37,"t":" func decode(resp *http.Response) (*ChargeResp, error) {"}]}]},{"path":"payment/client_test.go","old_path":null,"status":"modified","binary":false,"lang":"go","cls":"test","added":9,"removed":0,"fmt_only":false,"hunks":[{"id":"H3","header":"@@ -3,6 +3,7 @@ package payment","fn":"package payment","old_start":3,"old_len":6,"new_start":3,"new_len":7,"fmt":false,"comment_only":false,"symbols":[{"name":"TestChargeOK","kind_of":"function","change":"context"}],"lines":[{"o":3,"n":3,"t":" import ("},{"o":4,"n":4,"t":" \t\"context\""},{"o":5,"n":5,"t":" \t\"testing\""},{"o":null,"n":6,"t":"+\t\"time\""},{"o":6,"n":7,"t":" )"},{"o":7,"n":8,"t":" "},{"o":8,"n":9,"t":" func TestChargeOK(t *testing.T) {"}]},{"id":"H4","header":"@@ -11,3 +12,11 @@ func TestChargeOK(t *testing.T) {","fn":"func TestChargeOK(t *testing.T) {","old_start":11,"old_len":3,"new_start":12,"new_len":11,"fmt":false,"comment_only":false,"symbols":[{"name":"TestChargeRetriesThenSucceeds","kind_of":"function","change":"added"},{"name":"TestChargeOK","kind_of":"function","change":"context"}],"lines":[{"o":11,"n":12,"t":" \t\tt.Fatal(err)"},{"o":12,"n":13,"t":" \t}"},{"o":13,"n":14,"t":" }"},{"o":null,"n":15,"t":"+"},{"o":null,"n":16,"t":"+func TestChargeRetriesThenSucceeds(t *testing.T) {"},{"o":null,"n":17,"t":"+\tsrv := flaky(2) // fails twice with 503, then 200"},{"o":null,"n":18,"t":"+\tc := NewClient(srv.URL, Config{MaxRetries: 3, BaseDelay: time.Millisecond})"},{"o":null,"n":19,"t":"+\tif _, err := c.Charge(context.Background(), ChargeReq{}); err != nil {"},{"o":null,"n":20,"t":"+\t\tt.Fatal(err)"},{"o":null,"n":21,"t":"+\t}"},{"o":null,"n":22,"t":"+}"}]}]},{"path":"payment/config.go","old_path":null,"status":"modified","binary":false,"lang":"go","cls":"source","added":3,"removed":1,"fmt_only":false,"hunks":[{"id":"H5","header":"@@ -4,7 +4,9 @@ import \"time\"","fn":"import \"time\"","old_start":4,"old_len":7,"new_start":4,"new_len":9,"fmt":false,"comment_only":false,"symbols":[{"name":"Config","kind_of":"type","change":"context"},{"name":"DefaultConfig","kind_of":"function","change":"context"}],"lines":[{"o":4,"n":4,"t":" "},{"o":5,"n":5,"t":" // Config holds the client settings."},{"o":6,"n":6,"t":" type Config struct {"},{"o":7,"n":null,"t":"-\tTimeout time.Duration"},{"o":null,"n":7,"t":"+\tMaxRetries int           // default 3"},{"o":null,"n":8,"t":"+\tBaseDelay  time.Duration // default 200ms"},{"o":null,"n":9,"t":"+\tTimeout    time.Duration"},{"o":8,"n":10,"t":" }"},{"o":9,"n":11,"t":" "},{"o":10,"n":12,"t":" func DefaultConfig() Config {"}]}]}]},"ledger":{"meta":{"title":"Retry failed charges with backoff","repo":"payments-svc","base":"main","head":"retry-backoff","pr":"payments-svc #482: make payments resilient to provider outages","coverage":{"covered":25,"total":32,"unverified_claims":1}},"claims":{"C1":{"label":"verified","lvl":"symbol","kind":"behavior","claim":"`Charge` now sends the request again, up to `MaxRetries` more times, when the call errors or the status is 500 or above.","ev":[["payment/client.go","new",20,28]],"deps":[]},"C2":{"label":"verified","lvl":"symbol","kind":"behavior","claim":"`backoff` doubles the delay on each attempt (`base << attempt`) and caps it at 30 seconds.","ev":[["payment/client.go","new",31,35]],"deps":[]},"C3":{"label":"verified","lvl":"symbol","kind":"interface","claim":"`Config` gains two fields, `MaxRetries` and `BaseDelay`; their defaults (3 and 200ms) are written in comments, not enforced in this diff.","ev":[["payment/config.go","new",6,9]],"deps":[]},"C4":{"label":"inferred","lvl":"symbol","kind":"risk","claim":"`Charge` retries a POST that carries no idempotency key, so a retry after a lost response could charge twice.","why":"Lines 23 and 24 resend the same `newPost` request on every pass, and the diff sets no key or header on it (lines 21-28).","ev":[["payment/client.go","new",23,24]],"deps":["C1"]},"C5":{"label":"verified","lvl":"symbol","kind":"behavior","claim":"`TestChargeRetriesThenSucceeds` covers a server that fails 2 times with 503 and then answers 200.","ev":[["payment/client_test.go","new",16,22]],"deps":[]},"C5b":{"label":"inferred","lvl":"symbol","kind":"test-gap","claim":"No test in the diff covers retries running out, or a 4xx response.","why":"The only test added is lines 16-22 of client_test.go; it ends in success. The older `TestChargeOK` sets no retry settings.","ev":[["payment/client_test.go","new",16,22]],"deps":["C5"]},"C6":{"label":"stated","lvl":"change","kind":"disagreement","claim":"The PR title says payments are now resilient to provider outages. The code retries only transient errors, with waits of up to 30 seconds; it does not queue or replay.","src":"PR title, payments-svc #482 (code partly agrees)","ev":[["payment/client.go","new",21,28]],"deps":["C1","C2"]},"C7":{"label":"unverified","lvl":"change","kind":"unknown","claim":"Whether the payment provider deduplicates repeated charges is not visible in this repository.","ev":[],"deps":["C4"]},"C8":{"label":"verified","lvl":"hunk","kind":"format-only","claim":"checkout.go changes whitespace only: the tokens before and after are identical.","ev":[["handlers/checkout.go","new",8,8]],"deps":[]},"C9":{"label":"inferred","lvl":"component","kind":"behavior","claim":"The payment client now absorbs short provider outages inside one `Charge` call, so callers wait longer before an error (up to roughly the sum of the delays).","why":"From C1 (the loop) and C2 (the delays): the loop sleeps between attempts before it returns an error.","ev":[["payment/client.go","new",20,35]],"deps":["C1","C2"]}},"hunks":[{"id":"H1","text":"Pay: whitespace only","claims":["C8"]},{"id":"H2","text":"Charge: single call replaced by a retry loop; new helper backoff","claims":["C1","C4","C2"]},{"id":"H3","text":"test file imports time","claims":[]},{"id":"H4","text":"one new test: retries then succeeds","claims":["C5","C5b"]},{"id":"H5","text":"two retry settings added to Config","claims":["C3"]}],"symbols":[{"id":"S1","name":"Charge","file":"payment/client.go","sig":"func (*Client) Charge(ctx, ChargeReq)","kind":"modified","hunks":["H2"],"ranges":[{"file":"payment/client.go","new":[20,29],"old":[20,23]}],"claims":["C1","C4"],"before":"Sends one request; returns the first error.","after":"Retries on error or 5xx, sleeping between attempts, then returns the last error."},{"id":"S2","name":"backoff","file":"payment/client.go","sig":"func backoff(base, attempt)","kind":"added","hunks":["H2"],"ranges":[{"file":"payment/client.go","new":[30,35]}],"claims":["C2"],"before":"(did not exist)","after":"Delay = base << attempt, capped at 30s."},{"id":"S3","name":"Config","file":"payment/config.go","sig":"type Config struct","kind":"modified","hunks":["H5"],"claims":["C3"],"before":"Timeout only.","after":"Adds MaxRetries and BaseDelay."},{"id":"S4","name":"TestChargeRetriesThenSucceeds","file":"payment/client_test.go","sig":"func TestChargeRetriesThenSucceeds(t)","kind":"added","hunks":["H3","H4"],"claims":["C5","C5b"],"before":"(did not exist)","after":"Covers 2 failures, then success."},{"id":"S5","name":"Checkout.Pay (format)","file":"handlers/checkout.go","sig":"formatting","kind":"format-only","hunks":["H1"],"claims":["C8"],"before":"same","after":"same"}],"components":[{"id":"K1","name":"payment client","role":"core to the change","desc":"Charges now survive brief provider errors by retrying with a capped delay. Callers can wait much longer before an error.","claims":["C9","C4","C6"],"syms":["S1","S2","S3","S4"],"tests":"1 test, no exhaustion case","risk":true,"terms":["Backoff","Idempotency key"]},{"id":"K2","name":"checkout handler","role":"supporting (format only)","desc":"Whitespace only. No behaviour change.","claims":["C8"],"syms":["S5"],"tests":"n/a","risk":false,"terms":[]}],"pieces":[{"id":"P1","name":"payment client","sub":"client.go, risk: double charge","comp":"K1","sym":"S1","risk":true},{"id":"P2","name":"retry settings","sub":"config.go","comp":"K1","sym":"S3","risk":false},{"id":"P3","name":"tests","sub":"client_test.go: gap","comp":"K1","sym":"S4","risk":true},{"id":"P4","name":"checkout (format)","sub":"folded","comp":"K2","sym":"S5","risk":false}],"change":{"purpose":"Make the payment client retry failed charges with a capped, doubling delay. It touches one component and does not change what callers send.","graph":[{"n":"checkout handler (format only)"},{"n":"payment client","chg":true},{"n":"payment provider (external)"}],"flow":{"text":"checkout -> `Charge` -> provider. Now: on error or 5xx, wait and resend, up to `MaxRetries` times, then return the last error.","claim":"C9"},"stated":["C6"],"risks":["C4","C7","C5b"]},"cohorts":[{"id":"G1","name":"Retry failed charges","why":"One purpose: a charge that hits a transient error is resent after a growing delay.","layers":["Y1","Y2","Y3","Y4"]},{"id":"G2","name":"Formatting only","why":"No behaviour change; folded by default.","layers":["Y5"]}],"layers":{"Y1":{"title":"Retry settings","order":"Read first: the later layers read these two values.","sum":"Adds two settings, MaxRetries and BaseDelay. Their defaults are only in comments.","claims":["C3"],"ranges":[{"file":"payment/config.go","new":[7,9],"old":[7,7]}]},"Y2":{"title":"Delay between attempts","order":"Second: Charge calls it, so read it before Charge.","sum":"A new helper doubles the wait on each attempt and caps it at 30 seconds.","claims":["C2"],"ranges":[{"file":"payment/client.go","new":[30,34]}]},"Y3":{"title":"Charge retries","order":"Third: composes layers 1 and 2. This is where the purpose of the change lives.","sum":"Charge now resends on error or 5xx, waiting between tries. Callers can wait much longer, and a retry could charge twice.","claims":["C1","C9","C4","C6"],"ranges":[{"file":"payment/client.go","new":[21,29],"old":[21,23]}],"diagram":{"type":"flow","caption":"Flow of Charge, built from C1 and C2.","built_from":["C1","C2"],"edges":[["send request","ok and status < 500?",""],["ok and status < 500?","return response","yes"],["ok and status < 500?","sleep backoff(base, attempt)","no"],["sleep backoff(base, attempt)","attempt <= MaxRetries?",""],["attempt <= MaxRetries?","send request","yes"],["attempt <= MaxRetries?","return last error","no"]]}},"Y4":{"title":"Test and what is not known","order":"Last in the cohort: what the test covers and what it does not.","sum":"One test covers fail-twice-then-succeed. Running out of retries and 4xx are untested; provider dedup is unknown.","claims":["C5","C5b","C7"],"ranges":[{"file":"payment/client_test.go","new":[6,6]},{"file":"payment/client_test.go","new":[15,22]}]},"Y5":{"title":"Whitespace in checkout","order":"Separate cohort, no link to the retry change.","sum":"Whitespace only.","claims":["C8"],"ranges":[{"file":"handlers/checkout.go","new":[8,8],"old":[8,8]}]}},"glossary":[["Idempotency key","a unique token sent with a request so the server can recognise and ignore a repeat of the same request."],["Backoff","waiting longer after each failed attempt before trying again (here doubling, capped at 30s). payment/client.go:31-35."],["Hunk","a contiguous block of changed lines in a diff."],["Symbol","a function, type or constant a parser can name."]],"dropped":["Dropped: 'retries are safe because the endpoint is idempotent' - no cited line states this (R-V1.4: the code does not say it)."],"audit":["Dropped: 'retries are safe because the endpoint is idempotent' - no cited line states this (R-V1.4: the code does not say it).","Checked: 9 of 9 cited ranges exist; 10 named identifiers and 6 numbers looked up in the cited lines; 32 of 32 changed lines are owned by a layer."]}}</script>
+<script>
+"use strict";
+const DV=JSON.parse(document.getElementById("dv-data").textContent);
+if(!DV.diff||!DV.ledger){document.body.innerHTML='<p style="padding:24px">No data in this template. Run scripts/build_mock.py to fill it.</p>';throw new Error("no data")}
+const LED=DV.ledger,L=LED.claims||{},META=LED.meta||{};
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const rich=s=>esc(s).replace(/`([^`]+)`/g,"<code>$1</code>");
+const $=s=>document.querySelector(s),canvas=$("#canvas");
+const LEVELS=["L0 Code","L1 Hunks","L2 Symbols","L3 Components","L4 Change"];
+const chipTxt={verified:"verified",inferred:"~ inferred",stated:"stated",unverified:"? unverified"};
+const RANK=["unverified","inferred","stated","verified"];
+
+/* ---- data model ---- */
+const FILES={},HUNKD={},HORD={};let hn=0;
+DV.diff.files.forEach((f,i)=>{f.idx=i;FILES[f.path]=f;f.rows=[];
+  f.hunks.forEach(h=>{h.file=f.path;HUNKD[h.id]=h;HORD[h.id]=hn++;h.lines.forEach((l,k)=>{const r={o:l.o,n:l.n,t:l.t,hid:h.id,k};f.rows.push(r)})})});
+const SYMBOLS=LED.symbols||[],COMPS=LED.components||[],PIECES=LED.pieces||[],COHORTS=LED.cohorts||[],LAYERS=LED.layers||{};
+const HUNKS=(LED.hunks||[]).map(x=>({...x,file:HUNKD[x.id]?.file}));
+const symOf=id=>SYMBOLS.find(s=>s.id===id),hunkOf=id=>HUNKS.find(h=>h.id===id);
+const ORDER=COHORTS.flatMap(c=>c.layers).filter(id=>LAYERS[id]);
+const STEPS=["overview",...ORDER];
+const GLOSS=LED.glossary||[];
+const AUDIT=LED.audit||LED.dropped||[];
+const st={mode:"zoom",step:0,gviewed:{},viewed:{},split:false,cur:-1,z:2,sel:null,over:{},piece:0,frame:"app"};
+const lvl=id=>st.over[id]??st.z;
+const chip=id=>L[id]?`<button class="chip ${L[id].label}" data-c="${id}" title="Open evidence" aria-label="${L[id].label}, open evidence">${chipTxt[L[id].label]}</button>`:"";
+const evs=id=>(L[id]?.ev||[]).map(e=>`<button class="ev" data-c="${id}" data-hl="${e[0]}|${e[1]}|${e[2]}|${e[3]}">${esc(e[0])}:${e[2]}-${e[3]}</button>`).join(" ");
+const brief=()=>$("#det").value==="brief",longd=()=>$("#det").value==="long";
+const weakest=ids=>[...ids].filter(i=>L[i]).sort((a,b)=>RANK.indexOf(L[a].label)-RANK.indexOf(L[b].label))[0];
+
+/* ---- syntax colouring (generic, light) ---- */
+const KW=new Set(("if else elif for while do switch case default break continue return func function def class struct enum interface type var let const val fn pub use import from package namespace using public private protected static final "+
+ "async await try catch except finally throw throws new delete nil null None true false True False self this super in is not and or as with yield lambda impl trait mod match where go defer chan range map int string bool void auto template typename "+
+ "virtual override operator extern inline constexpr volatile unsigned signed long short char float double message service rpc repeated optional required oneof syntax select SELECT FROM WHERE INSERT UPDATE DELETE CREATE TABLE ALTER end then local export extends implements").split(" "));
+const HASH=new Set(["python","ruby","shell","yaml","toml","terraform","r","elixir","julia","make","docker"]),DASH=new Set(["sql","lua","haskell"]);
+function hi(raw,lang){
+  const cm=HASH.has(lang)?"#.*":DASH.has(lang)?"--.*":"\\/\\/.*|^\\s*\\/?\\*.*";
+  const re=new RegExp("("+cm+")|(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|`(?:\\\\.|[^`\\\\])*`)|(\\b\\d[\\w.]*\\b)|([A-Za-z_]\\w*)","g");
+  let out="",last=0,m;
+  while((m=re.exec(raw))){out+=esc(raw.slice(last,m.index));last=re.lastIndex;
+    if(m[1])out+=`<span class="tk-cm">${esc(m[1])}</span>`;
+    else if(m[2])out+=`<span class="tk-str">${esc(m[2])}</span>`;
+    else if(m[3])out+=`<span class="tk-num">${esc(m[3])}</span>`;
+    else out+=KW.has(m[4])?`<span class="tk-kw">${m[4]}</span>`:esc(m[4])}
+  return out+esc(raw.slice(last))}
+
+/* ---- picking rows of a file ---- */
+function pickRows(file,pred,ctx){
+  const f=FILES[file];if(!f)return[];const rows=f.rows,keep=new Set();
+  rows.forEach((r,i)=>{if(pred(r)){keep.add(i);r.__hl=true}else r.__hl=false});
+  const hit=[...keep];hit.forEach(i=>{for(let d=-ctx;d<=ctx;d++){const j=i+d;if(rows[j]&&rows[j].hid===rows[i].hid)keep.add(j)}});
+  const idx=[...keep].sort((a,b)=>a-b),out=[];let prev=-2;
+  idx.forEach(i=>{if(prev>=0&&i>prev+1&&rows[i].hid===rows[prev].hid||(prev>=0&&rows[i].hid!==rows[prev].hid))out.push({sep:true,t:rows[i].hid===rows[prev]?.hid?"":HUNKD[rows[i].hid].header});
+    out.push({...rows[i],hl:rows[i].__hl});prev=i});
+  return out}
+const predRange=(rev,a,b)=>r=>rev==="new"?(r.n!=null&&r.t[0]!=="-"&&r.n>=a&&r.n<=b):(r.o!=null&&r.t[0]==="-"&&r.o>=a&&r.o<=b)||(r.o!=null&&r.t[0]===" "&&r.o>=a&&r.o<=b&&rev==="old");
+const predRanges=ranges=>r=>ranges.some(x=>(x.new&&r.t[0]!=="-"&&r.n!=null&&r.n>=x.new[0]&&r.n<=x.new[1])||(x.old&&r.t[0]==="-"&&r.o!=null&&r.o>=x.old[0]&&r.o<=x.old[1]));
+const hunkRows=h=>HUNKD[h.id||h]?HUNKD[h.id||h].lines.map(l=>({...l})):[];
+
+function table(rows,file){
+  const lang=FILES[file]?.lang||"text";
+  const hlcls=r=>r.hl?" hl":"";
+  if(st.split){
+    const out=[];let i=0;
+    while(i<rows.length){const r=rows[i];if(r.sep){out.push(r);i++;continue}
+      const k=r.t[0];if(k!=="+"&&k!=="-"){out.push([r,r]);i++;continue}
+      const ds=[],as=[];while(i<rows.length&&!rows[i].sep&&rows[i].t[0]==="-")ds.push(rows[i++]);while(i<rows.length&&!rows[i].sep&&rows[i].t[0]==="+")as.push(rows[i++]);
+      for(let j=0;j<Math.max(ds.length,as.length);j++)out.push([ds[j],as[j]])}
+    const cell=(l,side)=>l?`<td class="n">${side==="o"?(l.o??""):(l.n??"")}</td><td class="c ${l.t[0]==="-"?"d":l.t[0]==="+"?"a":""}">${hi(l.t.slice(1),lang)}</td>`:`<td class="n"></td><td class="c e"></td>`;
+    return `<div class="diffwrap"><table class="diff split mono">${out.map(p=>p.sep?`<tr class="sep"><td colspan="5">${esc(p.t||"...")}</td></tr>`:
+      `<tr class="${(p[1]&&p[1].hl)||(p[0]&&p[0].hl)?"hl":""}">${cell(p[0]&&p[0].t[0]!=="+"?p[0]:null,"o")}<td class="mid"></td>${cell(p[1]&&p[1].t[0]!=="-"?p[1]:null,"n")}</tr>`).join("")}</table></div>`}
+  return `<div class="diffwrap"><table class="diff mono">${rows.map(r=>r.sep?`<tr class="sep"><td colspan="3">${esc(r.t||"...")}</td></tr>`:
+    `<tr class="${r.t[0]==="+"?"a":r.t[0]==="-"?"d":""}${hlcls(r)}"><td class="n">${r.o??""}</td><td class="n">${r.n??""}</td><td class="c">${hi(r.t,lang)}</td></tr>`).join("")}</table></div>`}
+const diffOfHunk=h=>table(hunkRows(h),HUNKD[h.id||h].file);
+function diffOfRanges(ranges,ctx=2){const byFile={};ranges.forEach(r=>(byFile[r.file]=byFile[r.file]||[]).push(r));
+  return Object.entries(byFile).map(([f,rs])=>table(pickRows(f,predRanges(rs),ctx),f)).join("")}
+
+/* ---- claims ---- */
+function focusOK(i){if(!L[i])return false;const f=$("#focus").value,k=L[i].kind;
+  if(f==="everything")return true;
+  if(f==="risks")return["risk","test-gap","disagreement","unknown"].includes(k)||L[i].label==="unverified";
+  if(f==="tests")return k==="test-gap"||k==="test";
+  return k==="behavior"||k==="interface"||L[i].label!=="verified"}   // never hides inferred/unverified (R-D2, R-Z7)
+const why=i=>longd()&&L[i].why?`<br><span class="note">Reasoning: ${rich(L[i].why)}</span>`:"";
+const claimsHtml=ids=>ids.filter(focusOK).map(i=>`<p>${rich(L[i].claim)} ${chip(i)} ${evs(i)}${why(i)}</p>`).join("");
+const compact=ids=>ids.filter(focusOK).map(i=>`<p>${rich(L[i].claim)} ${chip(i)}</p>`).join("");
+const zbtn=id=>`<span class="zb"><button data-zo="${id}" data-d="-1" title="zoom in on this block" aria-label="zoom in">+</button><button data-zo="${id}" data-d="1" title="zoom out on this block" aria-label="zoom out">&minus;</button></span>`;
+const ovr=id=>st.over[id]!==undefined?`<span class="ovr" title="local zoom override">&#9679; local ${LEVELS[st.over[id]].split(" ")[0]}</span>`:"";
+const foldable=h=>{const f=FILES[HUNKD[h.id].file],n=$("#noise").value;
+  return n!=="all"&&(HUNKD[h.id].fmt||["generated","lockfile","vendored"].includes(f.cls)||(n==="tests"&&f.cls==="test"))};
+
+/* ---- block renderers (zoom view) ---- */
+function blockHunk(h,lv){
+  if(!HUNKD[h.id])return"";
+  lv=Math.min(lv,1);
+  if(lv===0)return `<div class="block" data-b="${h.id}" id="${h.id}"><div class="bh"><span class="t mono">${esc(h.file)}</span><span class="f mono">${esc(HUNKD[h.id].header.replace(/^(@@.*?@@).*/,"$1"))}</span>${ovr(h.id)}${zbtn(h.id)}</div>${diffOfHunk(h)}<div class="bb">${h.claims.filter(c=>L[c]).map(chip).join(" ")}</div></div>`;
+  if(foldable(h)){const f=FILES[h.file];return `<div class="fold" data-fold="${h.id}" tabindex="0">1 hunk folded: ${esc(f.path)} (${HUNKD[h.id].fmt?"format-only, tokens unchanged":f.cls}) ${h.claims.filter(c=>L[c]).map(chip).join(" ")}</div>`}
+  const anyU=h.claims.some(c=>L[c]?.label==="unverified");
+  return `<div class="block${anyU?" unverified":""}" data-b="${h.id}" id="${h.id}"><div class="bh"><span class="t">${esc(h.text)}</span><span class="f mono">${esc(h.file)}:${HUNKD[h.id].new_start}</span>${ovr(h.id)}${zbtn(h.id)}</div><div class="bb">${claimsHtml(h.claims)||'<p class="note">No claim of its own; see the symbol view.</p>'}</div></div>`}
+function blockSym(s,lv){
+  if(lv<=1){
+    if(lv===0&&s.ranges)return `<div class="block" data-b="${s.id}" id="${s.id}"><div class="bh"><span class="t">${esc(s.name)}</span><span class="pill">${s.kind}</span><span class="f mono">${esc(s.file)}</span>${ovr(s.id)}${zbtn(s.id)}</div>${diffOfRanges(s.ranges)}<div class="bb">${s.claims.filter(c=>L[c]).map(chip).join(" ")}</div></div>`;
+    return s.hunks.map(id=>hunkOf(id)).filter(Boolean).map(h=>blockHunk(h,lv)).join("")}
+  if(s.kind==="format-only"&&$("#noise").value!=="all")return `<div class="fold" data-fold="${s.id}" tabindex="0">format-only change folded: ${esc(s.name)} ${s.claims.filter(c=>L[c]).map(chip).join(" ")}</div>`;
+  const anyU=s.claims.some(c=>L[c]?.label==="unverified");
+  return `<div class="block${anyU?" unverified":""}" id="${s.id}" data-b="${s.id}"><div class="bh"><span class="t">${esc(s.name)}</span><span class="pill">${s.kind}</span><span class="f mono">${esc(s.sig||s.file)}</span>${ovr(s.id)}${zbtn(s.id)}</div>
+   <div class="bb">${brief()?"":`<div class="cols"><div><b>Before</b>${rich(s.before||"")}</div><div><b>After</b>${rich(s.after||"")}</div></div><br>`}${claimsHtml(s.claims)}</div></div>`}
+function blockComp(k,lv){
+  if(lv<=2)return k.syms.map(sid=>symOf(sid)).filter(Boolean).map(s=>blockSym(s,Math.min(st.over[s.id]??lv,2)===lv||st.over[s.id]===undefined?lv:st.over[s.id])).join("");
+  const aud=$("#aud").value!=="expert",terms=(k.terms||[]).map(t=>GLOSS.find(g=>g[0]===t)).filter(Boolean);
+  return `<div class="block${k.risk?" unverified":""}" id="${k.id}" data-b="${k.id}"><div class="bh"><span class="t">${esc(k.name)}</span><span class="pill">${esc(k.role||"")}</span>${ovr(k.id)}${zbtn(k.id)}</div>
+   <div class="bb"><p>${rich(k.desc||"")}</p>${aud&&terms.length?`<p class="note"><b>Terms:</b> ${terms.map(t=>`${esc(t[0])} = ${esc(t[1])}`).join(" ")}</p>`:""}
+   ${claimsHtml(k.claims)}<p class="note">Tests: ${esc(k.tests||"n/a")}. Built from ${k.syms.length} symbol(s): ${k.syms.map(s=>`<a href="#" data-go="${s}">${s}</a>`).join(", ")}</p></div></div>`}
+function blockChange(){
+  const c=LED.change||{},g=(c.graph||[]).map(n=>`<span class="node${n.chg?" chg":""}">${esc(n.n)}</span>`).join('<span class="arrow">&rarr;</span>');
+  const unk=Object.keys(L).filter(i=>L[i].label==="unverified"&&!(c.risks||[]).includes(i));
+  return `<div class="block hero"><div class="bb"><h2>Purpose</h2><p>${rich(c.purpose||"")}</p>${g?`<div class="graph">${g}</div>`:""}
+   ${c.flow?`<h3>Main flow that changes</h3><p>${rich(c.flow.text)} ${c.flow.claim?chip(c.flow.claim):""}</p>`:""}
+   ${(c.stated||[]).length?`<h3>Stated versus code</h3>${claimsHtml(c.stated)}`:""}
+   <h3>Risks and unknowns</h3>${claimsHtml([...(c.risks||[]),...unk])||'<p class="note">None recorded.</p>'}</div></div>`}
+const hunkOrder=()=>{const file=[...HUNKS].sort((a,b)=>HORD[a.id]-HORD[b.id]);if($("#order").checked)return file;
+  const seen=[];COMPS.forEach(k=>k.syms.forEach(sid=>(symOf(sid)?.hunks||[]).forEach(h=>{if(!seen.includes(h))seen.push(h)})));
+  return [...seen.map(hunkOf).filter(Boolean),...file.filter(h=>!seen.includes(h.id))]};
+const symOrder=()=>{const all=COMPS.flatMap(k=>k.syms.map(symOf).filter(Boolean));
+  return $("#order").checked?[...all].sort((a,b)=>(FILES[a.file]?.idx??0)-(FILES[b.file]?.idx??0)||HORD[a.hunks[0]]-HORD[b.hunks[0]]):all};
+
+function render(){
+  if(st.mode==="guided"){renderGuided();return}
+  const z=st.z;let h="";
+  if(z===4)h=blockChange()+`<p class="note">Zoom in to see which components, symbols and lines these statements come from.</p>`;
+  else if(z===3)h=COMPS.map(k=>blockComp(k,lvl(k.id))).join("");
+  else if(z===2)h=symOrder().map(s=>blockSym(s,Math.min(lvl(s.id),2))).join("");
+  else h=hunkOrder().map(x=>blockHunk(x,lvl(x.id))).join("");
+  canvas.innerHTML=h;
+  $("#stops").innerHTML=LEVELS.map((n,i)=>`<span class="${i===z?"on":""}">${n}</span>`).join("");$("#z").value=z;
+  const c=META.coverage||{covered:0,total:0,unverified_claims:0},pct=c.total?Math.round(c.covered/c.total*100):100;
+  $("#cov").innerHTML=`Coverage: ${c.covered} of ${c.total} changed lines have a verified or inferred entry; ${c.total-c.covered} do not (${c.unverified_claims} unverified claim${c.unverified_claims===1?"":"s"}).<div class="meter"><i style="width:${pct}%"></i></div>`;
+  if(st.sel)showEv(st.sel);
+  buildMini();hash()}
+
+/* ---- evidence panel ---- */
+function showEv(id,hl){
+  if(!L[id])return;st.sel=id;const e=L[id];
+  const chipRef=d=>`<button class="chip ${L[d]?.label}" data-c="${d}">${d}</button>`;
+  const built=(e.deps||[]).filter(d=>L[d]).map(chipRef).join(" ")||"none (leaf)";
+  const above=Object.keys(L).filter(k=>(L[k].deps||[]).includes(id)).map(chipRef).join(" ")||"none";
+  const evHtml=(e.ev||[]).map(v=>`<p class="mono note">${esc(v[0])} (${v[1]}) ${v[2]}-${v[3]}</p>${table(pickRows(v[0],predRange(v[1],v[2],v[3]),2),v[0])}`).join("");
+  $("#evid").innerHTML=`<h3>Evidence: ${id}</h3><p>${rich(e.claim)}</p><p>${chip(id)} <span class="pill">${e.kind||""}</span></p>
+   ${e.why?`<p class="note"><b>Reasoning:</b> ${rich(e.why)}</p>`:""}
+   ${e.src?`<p class="note"><b>Stated in:</b> ${esc(e.src)}</p>`:""}
+   ${e.reason?`<p class="note risk"><b>Downgraded by the verification pass:</b> ${esc(e.reason)}</p>`:""}
+   ${e.label==="unverified"&&!e.reason?`<p class="note risk"><b>Not confirmed from code.</b> Shown so that it is not mistaken for a verified fact.</p>`:""}
+   ${evHtml}<p class="note"><b>Built from:</b> ${built}<br><b>Used by:</b> ${above}</p>
+   <p class="note">Audit: citation exists, identifiers found in range, numbers match (mechanical check, see the audit log).</p>`}
+
+/* ---- outline, files, difference map ---- */
+function renderOutline(){
+  $("#olh").textContent=st.mode==="guided"?"Layers":"Outline (top-down)";
+  if(st.mode==="guided"){
+    $("#outline").innerHTML=`<a data-gs="0" class="${st.step===0?"on":""}">Overview</a>`+COHORTS.map((c,k)=>`<div class="grp">${k+1}. ${esc(c.name)}</div>`+c.layers.filter(l=>LAYERS[l]).map(l=>{const s=STEPS.indexOf(l);
+      return `<a data-gs="${s}" class="${s===st.step?"on":""}">${ORDER.indexOf(l)+1}. ${esc(LAYERS[l].title)}${st.gviewed[l]?' <span class="tick">&#10003;</span>':""}</a>`}).join("")).join("");return}
+  $("#outline").innerHTML=PIECES.map((p,i)=>`<a data-p="${i}" class="${i===st.piece?"on":""}">${i+1}. ${esc(p.name)}${p.risk?' <span class="risk">&#9650;</span>':""}<small>${esc(p.sub||"")}</small></a>`).join("")}
+function renderFiles(){
+  const fs=DV.diff.files,n=fs.filter(f=>st.viewed[f.path]).length;$("#vprog").textContent=`${n} of ${fs.length} viewed`;
+  $("#files").innerHTML=fs.map(f=>`<label class="${st.viewed[f.path]?"done":""}"><input type="checkbox" data-v="${esc(f.path)}" ${st.viewed[f.path]?"checked":""}><span class="nm mono" title="${esc(f.path)}">${esc(f.path.split("/").pop())}</span><span class="cls">${f.cls}</span><span class="cnt"><span class="p">+${f.added}</span> <span class="m">-${f.removed}</span></span></label>`).join("")}
+document.addEventListener("change",e=>{if(e.target.dataset.v){st.viewed[e.target.dataset.v]=e.target.checked;renderFiles()}});
+const items=()=>[...canvas.children].filter(c=>c.classList.contains("block")||c.classList.contains("fold"));
+function buildMini(){
+  const m=$("#mini"),H=canvas.scrollHeight||1,it=items();
+  m.innerHTML=it.map((c,j)=>{const ch=c.querySelector(".chip");const cl=c.classList.contains("fold")?"fold":(ch?(["verified","inferred","stated","unverified"].find(x=>ch.classList.contains(x))||"verified"):"verified");
+    return `<i class="${cl}" style="top:${c.offsetTop/H*100}%;height:${c.offsetHeight/H*100}%" data-j="${j}"></i>`}).join("")+'<b id="vp"></b>';vp()}
+function vp(){const H=canvas.scrollHeight||1,b=$("#vp");if(b){b.style.top=canvas.scrollTop/H*100+"%";b.style.height=Math.min(100,canvas.clientHeight/H*100)+"%"}}
+canvas.addEventListener("scroll",vp);
+function go(i){const it=items();if(!it.length)return;st.cur=(i+it.length)%it.length;it[st.cur].scrollIntoView({behavior:"smooth",block:"center"});
+  it.forEach(x=>x.classList.remove("sel"));it[st.cur].classList.add("sel");const c=it[st.cur].querySelector("[data-c]");if(c)showEv(c.dataset.c)}
+$("#mini").addEventListener("click",e=>{const j=e.target.dataset?.j;if(j!==undefined)go(+j)});
+$("#nv").onclick=()=>go(st.cur+1);$("#pv").onclick=()=>go(st.cur-1);
+
+/* ---- Lead me: guided review (cohorts of layers, one at a time) ---- */
+function diagramHtml(d){
+  if(!d)return"";const nd=(t,c)=>`<span class="node ${c||""}">${esc(t)}</span>`,ar='<span class="arrow">&rarr;</span>';let body="";
+  if(d.type==="flow"||d.type==="state")body=(d.edges||[]).map(e=>`<div class="row">${nd(e[0],d.type==="flow"&&/\?$/.test(e[0])?"dec":"")}${e[2]?`<span class="lbl">${esc(e[2])}</span>`:""}${ar}${nd(e[1],d.type==="flow"&&/\?$/.test(e[1])?"dec":"")}</div>`).join("");
+  else if(d.type==="sequence")body=`<div class="row">${(d.participants||[]).map(p=>nd(p,"chg")).join("")}</div>`+(d.messages||[]).map((m,i)=>`<div class="row"><span class="lbl">${i+1}.</span>${nd(m[0])}${ar}${nd(m[1])}<span>${esc(m[2])}</span></div>`).join("");
+  else if(d.type==="er")body=(d.entities||[]).map(e=>`<div class="ent"><b>${esc(e.name)}</b>${(e.fields||[]).map(f=>`<div>${esc(f)}</div>`).join("")}</div>`).join("")+(d.relations||[]).map(r=>`<div class="row">${nd(r[0])}<span class="lbl">${esc(r[2]||"")}</span>${ar}${nd(r[1])}</div>`).join("");
+  return `<div class="dg"><h4>Diagram: ${d.type}</h4>${body}<p class="note" title="Shown because the layer's structure warrants one. Layers with no such structure stay text only.">${esc(d.caption||"")} Built from ${(d.built_from||[]).join(", ")}.</p></div>`}
+const rangeTxt=r=>r.file+":"+[r.new&&"new "+r.new.join("-"),r.old&&"old "+r.old.join("-")].filter(Boolean).join(", ");
+function renderGuided(){
+  const i=st.step,id=STEPS[i],N=ORDER.length;let h="";
+  if(id==="overview"){
+    h+=`<div class="block hero"><div class="bb"><h2>${COHORTS.length} group${COHORTS.length===1?"":"s"} of changes, ${N} layer${N===1?"":"s"}</h2>
+     <p>The change is grouped by meaning, not by file. Each group is read in order, one layer at a time. Every changed line is in exactly one layer, so nothing is skipped.</p></div></div>`+
+     COHORTS.map((c,k)=>`<div class="coh"><h3>${k+1}. ${esc(c.name)}</h3><p class="note">${rich(c.why||"")}</p>${c.layers.filter(l=>LAYERS[l]).map(l=>`<button data-gs="${STEPS.indexOf(l)}">${ORDER.indexOf(l)+1}. ${esc(LAYERS[l].title)}${st.gviewed[l]?" &#10003;":""}</button>`).join("")}</div>`).join("")+
+     (N?`<p><button class="lead" data-gs="1">Start with layer 1</button></p>`:"");
+  }else{
+    const y=LAYERS[id],c=COHORTS.find(x=>x.layers.includes(id)),n=ORDER.indexOf(id)+1;
+    const ver=y.claims.filter(k=>L[k]?.label==="verified"),oth=y.claims.filter(k=>L[k]&&L[k].label!=="verified");
+    h+=`<div class="block" id="${id}"><div class="bh"><span class="t">Layer ${n} of ${N}: ${esc(y.title)}</span><span class="pill">${esc(c?.name||"")}</span><span class="f">group ${COHORTS.indexOf(c)+1} of ${COHORTS.length}</span></div>
+     <div class="bb">${y.order?`<p class="note">${rich(y.order)}</p>`:""}<p class="sumline">${rich(y.sum||"")} ${y.claims.length?chip(weakest(y.claims)):""}</p>
+      ${compact(oth)}
+      ${ver.filter(focusOK).length?`<details><summary>${ver.length} verified claim${ver.length===1?"":"s"}</summary>${compact(ver)}</details>`:""}
+      ${diagramHtml(y.diagram)}</div></div>
+     <div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f mono">${(y.ranges||[]).map(rangeTxt).join("; ")}</span></div>${diffOfRanges(y.ranges||[])}</div>`;
+    if(i===STEPS.length-1){const d=ORDER.filter(l=>st.gviewed[l]).length,left=ORDER.filter(l=>!st.gviewed[l]),
+        unk=Object.keys(L).filter(k=>L[k].label==="unverified"||L[k].kind==="disagreement");
+      h+=`<div class="block hero"><div class="bb"><h3>End of the change</h3><p>${d} of ${N} layers marked reviewed.${left.length?" Not yet reviewed: "+left.map(l=>`<a href="#" data-gs="${STEPS.indexOf(l)}">${ORDER.indexOf(l)+1}</a>`).join(", ")+".":""}</p>
+        ${unk.length?`<h3>Unknowns and disagreements</h3>${compact(unk)}`:""}<p><button data-gs="0">Back to overview</button></p></div></div>`}
+  }
+  canvas.innerHTML=h;
+  $("#gpos").textContent=id==="overview"?`Overview (${N} layers)`:`Layer ${ORDER.indexOf(id)+1} of ${N}`;
+  $("#gp").disabled=i===0;$("#gn").disabled=i===STEPS.length-1;
+  $("#gdone").checked=!!st.gviewed[id];$("#gdone").disabled=id==="overview";
+  buildMini();hash()}
+function gstep(i){st.step=Math.max(0,Math.min(STEPS.length-1,i));render();canvas.scrollTop=0;renderOutline();
+  const y=LAYERS[STEPS[st.step]];if(y&&y.claims[0])showEv(y.claims[0])}
+const toggleFocus=()=>{document.body.classList.toggle("focus");buildMini()},togglePane=c=>document.body.classList.toggle(c);
+function setMode(m){st.mode=m;document.body.classList.toggle("guided",m==="guided");if(m!=="guided")document.body.classList.remove("focus","nolist","noevid");
+  $("#lead").textContent=m==="guided"?"Back to zoom view":"Lead me";if(m==="guided")st.step=Math.min(st.step,STEPS.length-1);renderOutline();render()}
+function moreMenu(){const c=META.coverage||{};
+  $("#dlgc").innerHTML=`<h3>More</h3><div class="menu">
+  <button data-m="nolist">Show or hide the layer list ( [ )</button><button data-m="noevid">Show or hide the evidence panel ( ] )</button>
+  <button data-m="focus">Focus mode ( Z )</button><button data-m="gl">Glossary</button><button data-m="au">Audit log</button>
+  <button data-m="md">Copy as Markdown</button><button data-m="link">Copy link to this layer</button></div>
+  <div class="legend"><span class="chip verified">verified</span><span class="chip inferred">~ inferred</span><span class="chip stated">stated</span><span class="chip unverified">? unverified</span></div>
+  <p class="note">${esc(META.head||"")} vs ${esc(META.base||"")}. ${c.total?`${c.covered} of ${c.total} changed lines have a verified or inferred entry. `:""}Every changed line is in exactly one layer. Keys: J next, K previous, Z focus, [ and ] panels, Esc back.</p>`;dlg.showModal()}
+$("#gm").onclick=moreMenu;
+$("#view").onclick=()=>document.body.classList.toggle("showset");
+$("#lead").onclick=()=>setMode(st.mode==="guided"?"zoom":"guided");
+$("#gn").onclick=()=>gstep(st.step+1);$("#gp").onclick=()=>gstep(st.step-1);
+$("#gdone").addEventListener("change",e=>{const id=STEPS[st.step];if(id!=="overview"){st.gviewed[id]=e.target.checked;renderOutline()}});
+
+/* ---- events ---- */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("button,a,[data-fold]");if(!t)return;
+  if(t.dataset.m){const m=t.dataset.m;dlg.close();
+    if(m==="nolist"||m==="noevid")togglePane(m);else if(m==="focus")toggleFocus();else if(m==="gl")$("#gl").click();else if(m==="au")$("#au").click();
+    else if(m==="md")$("#md").click();else if(m==="link")navigator.clipboard?.writeText(location.href).catch(()=>{})}
+  else if(t.dataset.c){showEv(t.dataset.c)}
+  else if(t.dataset.zo){const id=t.dataset.zo,d=+t.dataset.d,nx=Math.max(0,Math.min(4,lvl(id)+d));if(nx===st.z)delete st.over[id];else st.over[id]=nx;render()}
+  else if(t.dataset.gs!==undefined){e.preventDefault();gstep(+t.dataset.gs)}
+  else if(t.dataset.go){e.preventDefault();st.z=2;st.over={};render();document.getElementById(t.dataset.go)?.scrollIntoView({behavior:"smooth"})}
+  else if(t.dataset.p!==undefined){st.piece=+t.dataset.p;renderOutline();scrollPiece()}
+  else if(t.dataset.f){st.frame=t.dataset.f;document.querySelectorAll(".frames button").forEach(b=>b.classList.toggle("on",b===t));
+    document.body.classList.toggle("frame-gh",st.frame==="gh");document.body.classList.toggle("frame-vs",st.frame==="vs")}
+  else if(t.dataset.fold!==undefined){$("#noise").value="all";render()}});
+function scrollPiece(){const p=PIECES[st.piece];if(!p)return;(document.getElementById(p.sym)||document.getElementById(p.comp)||document.querySelector(`[data-b="${HUNKS.find(h=>symOf(p.sym)?.hunks.includes(h.id))?.id}"]`))?.scrollIntoView({behavior:"smooth"})}
+$("#next").onclick=()=>{st.piece=(st.piece+1)%PIECES.length;renderOutline();scrollPiece()};
+$("#z").addEventListener("input",e=>{st.z=+e.target.value;st.over={};render()});
+$("#split").addEventListener("change",e=>{st.split=e.target.checked;render()});
+["aud","focus","noise","det","order"].forEach(i=>$("#"+i).addEventListener("change",render));
+document.addEventListener("keydown",e=>{
+  if(e.target.matches("input,select,textarea"))return;
+  if(e.key==="F8"){e.preventDefault();go(st.cur+1);return}if(e.key==="F7"){e.preventDefault();go(st.cur-1);return}
+  if(st.mode==="guided"){
+    if(e.key==="j")gstep(st.step+1);else if(e.key==="k")gstep(st.step-1);else if(e.key==="z")toggleFocus();
+    else if(e.key==="[")togglePane("nolist");else if(e.key==="]")togglePane("noevid");
+    else if(e.key==="Escape"){if(document.body.classList.contains("focus"))toggleFocus();else setMode("zoom")}return}
+  if("01234".includes(e.key)&&e.key!==""){st.z=+e.key;st.over={};render()}
+  else if(e.key==="+"||e.key==="="){st.z=Math.max(0,st.z-1);st.over={};render()}
+  else if(e.key==="-"){st.z=Math.min(4,st.z+1);st.over={};render()}
+  else if(e.key==="Escape"){st.z=0;render()}});
+canvas.addEventListener("wheel",e=>{if(!e.ctrlKey||st.mode==="guided")return;e.preventDefault();st.z=Math.max(0,Math.min(4,st.z+(e.deltaY>0?1:-1)));st.over={};render()},{passive:false});
+const dlg=$("#dlg");
+$("#gl").onclick=()=>{$("#dlgc").innerHTML="<h3>Glossary (terms used in this change)</h3>"+(GLOSS.map(g=>`<p><b>${esc(g[0])}</b>: ${esc(g[1])}</p>`).join("")||"<p class='note'>None.</p>");dlg.showModal()};
+$("#au").onclick=()=>{$("#dlgc").innerHTML="<h3>Audit log</h3><p class='note'>What the verification pass dropped, downgraded or checked.</p>"+AUDIT.map(a=>`<p>${esc(a)}</p>`).join("");dlg.showModal()};
+const wrap=(t,w=120)=>t.replace(new RegExp(`(.{1,${w}})(\\s+|$)`,"g"),"$1\n").trimEnd().split("\n").map((l,i)=>i?"  "+l:l).join("\n");
+$("#md").onclick=()=>{const t=Object.keys(L).map(k=>wrap(`- [${L[k].label}] ${L[k].claim} (${(L[k].ev||[]).map(v=>v[0]+":"+v[2]+"-"+v[3]).join(", ")||"no code evidence"})`)).join("\n");
+  navigator.clipboard?.writeText(t).then(()=>{$("#md").textContent="Copied";setTimeout(()=>$("#md").textContent="Copy as Markdown",1200)},()=>{})};
+
+/* ---- theme: auto, light, dark ---- */
+const THEMES=["auto","light","dark"];let theme="auto";
+try{theme=localStorage.getItem("dv-theme")||"auto"}catch(e){}
+function applyTheme(){const r=document.documentElement;if(theme==="auto")delete r.dataset.theme;else r.dataset.theme=theme;$("#theme").textContent="Theme: "+theme;try{localStorage.setItem("dv-theme",theme)}catch(e){}}
+$("#theme").onclick=()=>{theme=THEMES[(THEMES.indexOf(theme)+1)%3];applyTheme()};
+
+/* ---- permalink (R-U20): mode, layer, zoom ---- */
+function hash(){try{history.replaceState(null,"",st.mode==="guided"?`#m=g&s=${st.step}`:`#z=${st.z}`)}catch(e){}}
+function fromHash(){const p=new URLSearchParams(location.hash.slice(1));if(p.get("z")!==null&&!isNaN(+p.get("z")))st.z=Math.max(0,Math.min(4,+p.get("z")));
+  if(p.get("m")==="g"){st.step=Math.max(0,Math.min(STEPS.length-1,+p.get("s")||0));st.mode="guided";document.body.classList.add("guided");$("#lead").textContent="Back to zoom view"}}
+
+/* ---- resizers ---- */
+(function(){const main=$("#main");
+  try{const v=JSON.parse(localStorage.getItem("dv-w")||"{}");if(v.l)main.style.setProperty("--lw",v.l+"px");if(v.r)main.style.setProperty("--rw",v.r+"px")}catch(e){}
+  const cv=n=>parseInt(getComputedStyle(main).getPropertyValue(n))||0;
+  function drag(h,side){h.addEventListener("pointerdown",e=>{e.preventDefault();h.setPointerCapture(e.pointerId);h.classList.add("drag");
+    const mv=ev=>{const r=main.getBoundingClientRect(),w=side==="l"?ev.clientX-r.left:r.right-ev.clientX,max=r.width-16-260-(side==="l"?cv("--rw")||340:cv("--lw")||230);
+      main.style.setProperty(side==="l"?"--lw":"--rw",Math.max(140,Math.min(max,w))+"px")};
+    const up=()=>{h.classList.remove("drag");h.removeEventListener("pointermove",mv);h.removeEventListener("pointerup",up);
+      try{localStorage.setItem("dv-w",JSON.stringify({l:cv("--lw")||null,r:cv("--rw")||null}))}catch(e){}buildMini()};
+    h.addEventListener("pointermove",mv);h.addEventListener("pointerup",up)})}
+  drag($("#rsl"),"l");drag($("#rsr"),"r")})();
+
+/* ---- init ---- */
+document.title="diff-viz: "+(META.title||META.repo||"change");
+$("#src").textContent=`${META.repo||""} ${META.base||""} ← ${META.head||""}`.trim();
+$("#p1").textContent=`Pass 1 bottom-up: ${SYMBOLS.length} of ${SYMBOLS.length} symbols read, ${Object.keys(L).length} claims`;
+$("#ghbar").innerHTML=`<b>Pull requests</b> &rsaquo; ${esc(META.pr||META.repo||"")} &nbsp;|&nbsp; Conversation &nbsp; Commits &nbsp; Checks &nbsp; Files changed &nbsp; <b style="border-bottom:2px solid #fd8c73">diff-viz</b> &nbsp;(browser extension tab)`;
+$("#vsbar").innerHTML=`EXPLORER &nbsp; SOURCE CONTROL &nbsp; | &nbsp; <b>diff-viz: ${esc(META.repo||"")} ${esc(META.base||"")}..${esc(META.head||"")}</b> (webview panel)`;
+$("#foot").textContent=`${DV.diff.meta.files} files, ${DV.diff.meta.hunks} hunks, +${DV.diff.meta.added} -${DV.diff.meta.removed}. Line numbers refer to the diff in this page.`;
+applyTheme();fromHash();renderOutline();renderFiles();render();
+if(st.mode==="guided"){const y=LAYERS[STEPS[st.step]];if(y&&y.claims[0])showEv(y.claims[0])}else{const r=(LED.change?.risks||[])[0]||Object.keys(L)[0];if(r)showEv(r)}
+</script>
+</body>
+</html>

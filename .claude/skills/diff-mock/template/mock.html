@@ -395,7 +395,7 @@ function renderGuided(){
       ${compact(oth)}
       ${ver.filter(focusOK).length?`<details><summary>${ver.length} verified claim${ver.length===1?"":"s"}</summary>${compact(ver)}</details>`:""}
       ${diagramHtml(y.diagram)}</div></div>
-     <div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f mono">${(y.ranges||[]).map(rangeTxt).join("; ")}</span></div>${diffOfRanges(y.ranges||[])}</div>`;
+     ${(y.ranges||[]).length?`<div class="block"><div class="bh"><span class="t">The lines behind it</span><span class="f mono">${y.ranges.map(rangeTxt).join("; ")}</span></div>${diffOfRanges(y.ranges)}</div>`:`<p class="note">This layer owns no changed lines; its claims cite the code directly (open one to see the lines).</p>`}`;
     if(i===STEPS.length-1){const d=ORDER.filter(l=>st.gviewed[l]).length,left=ORDER.filter(l=>!st.gviewed[l]),
         unk=Object.keys(L).filter(k=>L[k].label==="unverified"||L[k].kind==="disagreement");
       h+=`<div class="block hero"><div class="bb"><h3>End of the change</h3><p>${d} of ${N} layers marked reviewed.${left.length?" Not yet reviewed: "+left.map(l=>`<a href="#" data-gs="${STEPS.indexOf(l)}">${ORDER.indexOf(l)+1}</a>`).join(", ")+".":""}</p>

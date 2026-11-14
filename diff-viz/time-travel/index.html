@@ -1,0 +1,1141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Way Beyond Compare: Time-Travel Edition</title>
+<style>
+:root{
+  --bg:#f6f7f9;--panel:#fff;--ink:#1c2128;--mute:#667085;--line:#d8dde5;--accent:#2f6fed;--accent-ink:#fff;
+  --add:#e6f6ea;--addink:#17632b;--del:#fdecec;--delink:#a1262b;--code:#f0f2f5;
+  --ver:#1a7f37;--inf:#9a6700;--sta:#6639ba;--unv:#cf222e;--sim:#2f6fed;
+  --ta:#2f6fed;--tb:#c2410c;--ta-bg:#e3ecfd;--tb-bg:#fdeadf;--hatch:#e9d5a8;--warn-bg:#fff4d6;--bad-bg:#fdecec;--ok-bg:#e6f6ea;
+  --shadow:0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){
+  --bg:#0f1318;--panel:#171c23;--ink:#e6e9ee;--mute:#98a2b3;--line:#2b333d;--accent:#6f9bff;--accent-ink:#0f1318;
+  --add:#12301b;--addink:#7ee29a;--del:#3a1618;--delink:#ff9aa0;--code:#1e242c;
+  --ver:#56d364;--inf:#e3b341;--sta:#b392f0;--unv:#ff7b72;--sim:#6f9bff;
+  --ta:#6f9bff;--tb:#fb923c;--ta-bg:#1c2b4d;--tb-bg:#43271a;--hatch:#4a3d1c;--warn-bg:#3a3012;--bad-bg:#3a1618;--ok-bg:#12301b;}}
+:root[data-theme=dark]{
+  --bg:#0f1318;--panel:#171c23;--ink:#e6e9ee;--mute:#98a2b3;--line:#2b333d;--accent:#6f9bff;--accent-ink:#0f1318;
+  --add:#12301b;--addink:#7ee29a;--del:#3a1618;--delink:#ff9aa0;--code:#1e242c;
+  --ver:#56d364;--inf:#e3b341;--sta:#b392f0;--unv:#ff7b72;--sim:#6f9bff;
+  --ta:#6f9bff;--tb:#fb923c;--ta-bg:#1c2b4d;--tb-bg:#43271a;--hatch:#4a3d1c;--warn-bg:#3a3012;--bad-bg:#3a1618;--ok-bg:#12301b;}
+*{box-sizing:border-box}
+html{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,sans-serif;min-height:100%;display:flex;flex-direction:column}
+button,select{font:inherit;color:inherit;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover:not([disabled]){border-color:var(--accent)}
+button[aria-disabled=true]{opacity:.55}
+button[disabled]{opacity:.4;cursor:not-allowed}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button[aria-pressed=true],button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+code,pre,.mono{font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace}
+h1,h2,h3{margin:0}
+.top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.top h1{font-size:15px}
+.spacer{flex:1}
+.pill{border:1px solid var(--line);border-radius:99px;padding:1px 9px;font-size:12px;color:var(--mute);white-space:nowrap}
+.chip{display:inline-block;border-radius:99px;padding:0 8px;font-size:11.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+.chip.sup{color:var(--ver)}.chip.sim{color:var(--sim)}.chip.mod{color:var(--inf)}.chip.asm{color:var(--unv)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+.bar label{display:flex;gap:5px;align-items:center;color:var(--mute);font-size:12.5px}
+.seg{display:flex;gap:0}.seg button{border-radius:0;margin-left:-1px}.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}.seg button:last-child{border-radius:0 6px 6px 0}
+.ro{font-size:12.5px;color:var(--mute)}.ro b{color:var(--ink)}
+body.guided .explore-only{display:none!important}
+body:not(.guided) .guided-only{display:none!important}
+.transport{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.scrub{display:flex;gap:8px;align-items:center;flex:1;min-width:220px}
+.scrub input{flex:1;accent-color:var(--accent)}
+.counters{display:flex;gap:6px;flex-wrap:wrap}
+.counters .pill b{color:var(--ink)}
+.counters .pill.bad{border-color:var(--unv);color:var(--unv)}.counters .pill.bad b{color:var(--unv)}
+#guide{margin:0;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line)}
+#guide .row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+#guide h2{font-size:15px}
+#guide .q{font-weight:600;margin:4px 0}
+#guide .a{margin:6px 0 0;padding:8px 12px;border-left:3px solid var(--accent);background:var(--code);border-radius:0 6px 6px 0}
+#guide .dots{display:flex;gap:4px}
+#guide .dots button{width:14px;height:14px;padding:0;border-radius:99px}
+#guide .dots button[aria-current=step]{background:var(--accent);border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:minmax(320px,1.3fr) minmax(360px,1.15fr) minmax(280px,.95fr);gap:0;align-items:start}
+.col{padding:10px 12px;min-width:0;border-right:1px solid var(--line)}
+#codeCol,#sideCol{position:sticky;top:0;max-height:100vh;overflow:auto}
+#midCol{min-height:70vh}
+.col:last-child{border-right:0;background:var(--panel)}
+.col>h3,.sec>h3{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:2px 0 6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sec{margin-bottom:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;box-shadow:var(--shadow)}
+.tabs{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.tabs button{padding:2px 9px;font-size:12.5px}
+/* code */
+.code{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:4px 0;overflow:auto;max-height:calc(100vh - 150px)}
+.ln{display:grid;grid-template-columns:30px 26px 1fr;align-items:baseline;border-left:3px solid transparent;white-space:pre}
+.ln .no{color:var(--mute);text-align:right;padding-right:6px;user-select:none;font:11px ui-monospace,monospace}
+.ln .gm{font:700 10.5px ui-monospace,monospace}
+.ln .gm .a{color:var(--ta)}.ln .gm .b{color:var(--tb)}
+.ln code{padding-right:10px}
+.ln.scope{border-left-color:var(--mute)}
+.ln.heldA{background:var(--ta-bg);border-left-color:var(--ta)}
+.ln.heldB{background:var(--tb-bg);border-left-color:var(--tb)}
+.ln.hlA{background:color-mix(in srgb,var(--ta) 38%,transparent)}
+.ln.hlB{background:color-mix(in srgb,var(--tb) 38%,transparent)}
+.ln.hlT{background:color-mix(in srgb,var(--mute) 25%,transparent)}
+.ln.dim code{color:var(--mute)}
+.ln.add{background:var(--add);color:var(--addink)}.ln.del{background:var(--del);color:var(--delink)}
+.legend{font-size:12px;color:var(--mute);margin:6px 0 0}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px;margin-right:3px}
+/* lanes */
+.lane{border:1px solid var(--line);border-left-width:5px;border-radius:8px;background:var(--panel);padding:8px 10px;margin-bottom:8px}
+.lane.A{border-left-color:var(--ta)}.lane.B{border-left-color:var(--tb)}
+.lane .hd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lane .hd b.A{color:var(--ta)}.lane .hd b.B{color:var(--tb)}
+.st{font-size:11.5px;font-weight:700;border-radius:99px;padding:0 8px}
+.st.ready{background:var(--ok-bg);color:var(--ver)}.st.blocked{background:var(--bad-bg);color:var(--unv)}
+.st.timer{background:var(--warn-bg);color:var(--inf)}.st.done{background:var(--code);color:var(--mute)}
+.lane .nx{margin:4px 0;font-size:13px}
+.lane .why{margin:4px 0 0;font-size:12.5px;color:var(--unv)}
+.pips{display:flex;gap:3px;margin:4px 0}
+.pips i{width:16px;height:5px;border-radius:3px;background:var(--line)}
+.pips i.d{background:var(--mute)}.pips i.c{background:var(--accent)}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.res .card h4{margin:0 0 3px;font-size:12px;color:var(--mute);font-weight:600}
+.res .big{font-size:14px;font-weight:600}
+.own.A{color:var(--ta)}.own.B{color:var(--tb)}
+.lk{margin:3px 0}
+.lk .pb{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin-top:2px}
+.lk .pb i{display:block;height:100%;background:var(--sim);transition:width .25s}
+.lk.dup .pb i{background:var(--unv)}
+.lk.dup{color:var(--unv)}
+.haz{border-radius:8px;padding:6px 10px;margin:0 0 8px;font-size:13px;border:1px solid var(--line)}
+.haz.ok{background:var(--ok-bg)}.haz.warn{background:var(--warn-bg)}.haz.bad{background:var(--bad-bg)}
+/* timeline */
+.tl{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);padding:6px}
+.tl table{border-collapse:collapse}
+.tl th,.tl td{padding:2px;text-align:center;min-width:58px;height:28px;font-size:11.5px}
+.tl th.rh{position:sticky;left:0;background:var(--panel);text-align:left;min-width:46px;z-index:1;color:var(--mute);font-weight:600;padding-right:6px}
+.tl thead th{color:var(--mute);font-weight:400;height:20px}
+.tl .fut{opacity:.45}
+.tl td.sel,.tl th.sel{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.tl .ev{width:100%;padding:1px 3px;font-size:11.5px;border-radius:5px;border-width:2px}
+.tl .ev.A{border-color:var(--ta);background:var(--ta-bg)}.tl .ev.B{border-color:var(--tb);background:var(--tb-bg)}
+.tl .ev.T{border-color:var(--mute);background:var(--code)}
+.tl .ev.dup{outline:2px solid var(--unv)}
+.tl .ev[aria-current=true]{box-shadow:0 0 0 2px var(--accent)}
+.tl .hatch{height:18px;border-radius:4px;background:repeating-linear-gradient(45deg,var(--hatch),var(--hatch) 4px,transparent 4px,transparent 8px)}
+.tl .ow{height:18px;border-radius:4px;font-size:11px;line-height:18px;font-weight:700}
+.tl .ow.A{background:var(--ta-bg);color:var(--ta)}.tl .ow.B{background:var(--tb-bg);color:var(--tb)}
+.tl .nl{height:18px;font-size:11px;line-height:18px;color:var(--mute)}
+.tl .nl.two{background:var(--bad-bg);color:var(--unv);font-weight:700;border-radius:4px}
+/* side */
+.kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}.kv dt{color:var(--mute)}.kv dd{margin:0}
+.snip{overflow-x:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:4px 0;margin:6px 0}
+.snip .ln{grid-template-columns:30px 1fr}
+.ex{margin:6px 0;padding:6px 10px;border-left:3px solid var(--sim);background:var(--code);border-radius:0 6px 6px 0}
+.ex.mod{border-left-color:var(--inf)}.ex.asm{border-left-color:var(--unv)}
+table.cmp{border-collapse:collapse;width:100%;font-size:12.5px;margin:4px 0 8px}
+table.cmp th,table.cmp td{border-bottom:1px solid var(--line);padding:3px 5px;text-align:right}
+table.cmp th:first-child,table.cmp td:first-child{text-align:left}
+table.cmp th{color:var(--mute);font-weight:600;font-size:11.5px}
+table.cmp tr.cur td{background:color-mix(in srgb,var(--accent) 10%,transparent)}
+td.bad{color:var(--unv);font-weight:700}td.good{color:var(--ver);font-weight:700}
+ul.tight{margin:4px 0;padding-left:18px}ul.tight li{margin:2px 0}
+details{margin:6px 0}summary{cursor:pointer;color:var(--mute);font-size:12.5px}
+#msg{position:sticky;bottom:0;padding:6px 16px;background:var(--panel);border-top:1px solid var(--line);font-size:13px;min-height:32px}
+#msg.rej{background:var(--bad-bg);color:var(--unv)}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);max-width:760px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog pre{white-space:pre-wrap;background:var(--code);padding:8px;border-radius:6px;max-height:55vh;overflow:auto}
+/* intro */
+#intro{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;overflow:auto}
+body.intro #intro{display:block}
+.hero{max-width:880px;margin:0 auto;padding:40px 20px}
+.hero h1{font-size:30px;line-height:1.15;margin:8px 0}
+.hero .sub{font-size:17px;color:var(--mute);margin:0 0 18px}
+.hero .pr{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px 16px;margin:14px 0;box-shadow:var(--shadow)}
+.hero .pr .t{font-weight:600}
+.hero .pr .ok{color:var(--ver)}
+.hero .mini{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;font-size:13px;margin-top:8px}
+.hero .mini .bar2{height:14px;border-radius:3px}
+.hero ul{padding-left:18px}
+.hero .cta{display:flex;gap:10px;margin:20px 0;flex-wrap:wrap}
+.hero .cta button{font-size:16px;padding:9px 20px}
+.hero .fine{font-size:12.5px;color:var(--mute)}
+@media (max-width:1100px){#codeCol,#sideCol{position:static;max-height:none}.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.col:last-child{grid-column:1/-1;border-top:1px solid var(--line)}}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}.scrub{min-width:0;flex-basis:100%}.col{border-right:0;border-bottom:1px solid var(--line)}.res{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+body.nomotion *{transition:none!important;animation:none!important}
+.pulse{animation:pulse .9s ease-out 1}
+@keyframes pulse{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent)}to{box-shadow:0 0 0 8px transparent}}
+</style>
+</head>
+<body class="intro">
+
+<header class="top">
+  <h1>Way Beyond Compare <span class="pill">Time-Travel Edition</span></h1>
+  <span class="pill" title="Everything on this page is produced by a small state machine, not by running C++">simulation of one supplied C++ example</span>
+  <span class="spacer"></span>
+  <div class="seg" role="group" aria-label="Mode">
+    <button id="modeG" aria-pressed="false">Guided</button>
+    <button id="modeE" aria-pressed="false">Explore</button>
+  </div>
+  <button id="helpBtn" aria-label="Keyboard shortcuts">?</button>
+  <button id="motionBtn" aria-pressed="false" title="Turn off transitions and highlight pulses">Reduce motion</button>
+  <button id="themeBtn" title="Cycle auto, light, dark">Theme: auto</button>
+</header>
+
+<section id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+  <div class="hero">
+    <span class="pill">Way Beyond Compare</span>
+    <h1 id="introTitle">Time-Travel Edition</h1>
+    <p class="sub">A diff shows what changed. This one shows what the change <i>does</i> when two threads run it, and lets you rewind.</p>
+    <div class="pr">
+      <div class="t">PR: “Make the resolver cache thread-safe”</div>
+      <div><span class="ok">&#10003;</span> every <code>map_</code> access is now under a <code>std::mutex</code> &nbsp;·&nbsp; <span class="ok">&#10003;</span> tests pass</div>
+      <div class="mini" aria-hidden="true">
+        <b style="color:var(--ta)">A</b><div class="bar2" style="background:var(--ta);width:62%"></div>
+        <b style="color:var(--tb)">B</b><div class="bar2" style="background:var(--tb);width:62%"></div>
+      </div>
+      <div class="fine" style="margin-top:6px">Two threads ask for the same missing key. How many expensive lookups happen?</div>
+    </div>
+    <ul>
+      <li>C++ on the left, threads, lock, cache and lookups on the right, one event at a time.</li>
+      <li>Step, rewind, scrub, pick which thread runs next, and see what the mutex does and does not buy you.</li>
+      <li>Three implementations compared on the same workload.</li>
+    </ul>
+    <div class="cta">
+      <button id="startBtn" class="primary">Start the demo</button>
+      <button id="exploreBtn">Explore freely</button>
+    </div>
+    <p class="fine">
+      <span class="chip sup">Supplied</span> C++ source, shown verbatim &nbsp;
+      <span class="chip sim">Simulated</span> events from a deterministic state machine &nbsp;
+      <span class="chip mod">Model</span> conclusions that hold for the model only &nbsp;
+      <span class="chip asm">Assumption</span> things not modelled.<br>
+      Nothing here compiles, runs or analyses C++. It simulates one hand-written example. Simulated time is in made-up units, not a benchmark.
+    </p>
+  </div>
+</section>
+
+<section id="guide" class="guided-only" aria-live="polite"></section>
+
+<div class="bar" id="controls">
+  <div class="seg explore-only" role="group" aria-label="Implementation" id="varSeg"></div>
+  <label class="explore-only">Workload <select id="wlSel"></select></label>
+  <label class="explore-only">Schedule <select id="schSel"></select></label>
+  <span class="ro guided-only" id="roCfg"></span>
+  <div class="transport" role="group" aria-label="Playback">
+    <button id="bReset" title="Reset (R)">&#10226; Reset</button>
+    <button id="bBack" title="Step back (&larr;)">&#9664; Back</button>
+    <button id="bPlay" title="Play / pause (Space)">&#9654; Play</button>
+    <button id="bStep" title="Step with the schedule (&rarr;)">Step &#9654;|</button>
+    <button id="bEnd" title="Run the schedule to the end (End)">End &#9197;</button>
+    <label class="ro">Speed <select id="spSel"><option value="1100">0.5&times;</option><option value="650" selected>1&times;</option><option value="300">2&times;</option></select></label>
+  </div>
+  <div class="scrub"><input type="range" id="scrub" min="0" max="0" value="0" aria-label="Timeline position"><span class="ro" id="scrubLbl"></span></div>
+  <div class="counters" id="counters" aria-label="Measurements (simulated)"></div>
+</div>
+
+<main class="grid">
+  <section class="col" id="codeCol" aria-label="C++ source">
+    <h3>C++ <span class="chip sup">Supplied</span><span id="codeName" style="text-transform:none;letter-spacing:0"></span></h3>
+    <div class="tabs" id="codeTabs"></div>
+    <div class="code" id="code" tabindex="0" aria-label="Source listing with the lines of the selected event highlighted"></div>
+    <p class="legend" id="codeLegend"></p>
+  </section>
+  <section class="col" id="midCol" aria-label="Threads and shared state">
+    <h3>Threads and shared state <span class="chip sim">Simulated</span></h3>
+    <div id="haz"></div>
+    <div id="lanes"></div>
+    <div class="sec" style="margin-top:4px">
+      <h3>Timeline <span class="chip sim">Simulated</span><span style="text-transform:none;letter-spacing:0">click an event to jump to it</span></h3>
+      <div class="tl" id="tl"></div>
+    </div>
+    <div class="res" id="res" style="margin-top:12px"></div>
+  </section>
+  <aside class="col" id="sideCol" aria-label="Inspector">
+    <div class="tabs" role="tablist" id="sideTabs"></div>
+    <div id="side"></div>
+  </aside>
+</main>
+<div id="msg" role="status" aria-live="polite"></div>
+
+<dialog id="dlg"><div id="dlgBody"></div><form method="dialog" style="margin-top:8px"><button autofocus>Close</button></form></dialog>
+
+<script id="engine">
+/* ====== ENGINE: pure, no DOM. A small explicit state machine. Everything the page shows is derived from it. ====== */
+const Engine=(()=>{
+const THREADS=['A','B'], ACTORS=['A','B','T'];
+const MARK=/\s*\/\/@(\w+)\s*$/;
+function code(src){return src.map(l=>{const m=l.match(MARK);return {t:l.replace(MARK,''),id:m?m[1]:null}})}
+
+/* ---------- supplied C++ (three variants). Line ids after //@ are stripped from the display. ---------- */
+const HEAD=[
+'#include <future>',
+'#include <mutex>',
+'#include <optional>',
+'#include <string>',
+'#include <unordered_map>',
+'#include <utility>',
+'',
+'std::string slow_lookup(const std::string& host);  // ~100 ms (DNS, say); defined elsewhere',
+''];
+const V1SRC=HEAD.concat([
+'class Cache {',
+'public:',
+'    std::optional<std::string> get(const std::string& key) {',
+'        std::lock_guard<std::mutex> lock(mu_);   // takes mu_   //@get_lock',
+'        auto it = map_.find(key);                //@get_find',
+'        if (it == map_.end()) return std::nullopt;  // miss   //@get_miss',
+'        return it->second;                       // hit   //@get_hit',
+'    }                                            // releases mu_   //@get_close',
+'    void put(const std::string& key, std::string value) {',
+'        std::lock_guard<std::mutex> lock(mu_);   // takes mu_   //@put_lock',
+'        map_[key] = std::move(value);            //@put_store',
+'    }                                            // releases mu_   //@put_close',
+'private:',
+'    std::mutex mu_;',
+'    std::unordered_map<std::string, std::string> map_;',
+'};',
+'',
+'class Resolver {',
+'public:',
+'    std::string resolve(const std::string& host) {',
+'        if (auto hit = cache_.get(host)) return *hit;   //@res_get',
+'        std::string ip = slow_lookup(host);      // no lock held   //@res_lookup',
+'        cache_.put(host, ip);                    //@res_put',
+'        return ip;                               //@res_ret',
+'    }',
+'private:',
+'    Cache cache_;',
+'};']);
+const V2SRC=HEAD.concat([
+'class Resolver {',
+'public:',
+'    std::string resolve(const std::string& host) {',
+'        std::lock_guard<std::mutex> lock(mu_);   // held until return   //@c_lock',
+'        auto it = map_.find(host);               //@c_find',
+'        if (it != map_.end()) return it->second;  // hit   //@c_hit',
+'        std::string ip = slow_lookup(host);      // mu_ STILL HELD   //@c_lookup',
+'        map_[host] = ip;                         //@c_store',
+'        return ip;                               // releases mu_   //@c_ret',
+'    }',
+'private:',
+'    std::mutex mu_;',
+'    std::unordered_map<std::string, std::string> map_;',
+'};']);
+const V3SRC=HEAD.concat([
+'class Resolver {',
+'public:',
+'    std::string resolve(const std::string& host) {',
+'        std::promise<std::string> promise;',
+'        std::shared_future<std::string> future;',
+'        bool leader = false;',
+'        {',
+'            std::lock_guard<std::mutex> lock(mu_);   // short critical section   //@k_lock1',
+'            if (auto it = map_.find(host); it != map_.end())   //@k_find',
+'                return it->second;                   // hit   //@k_hit',
+'            if (auto it = inflight_.find(host); it != inflight_.end()) {   //@k_ifind',
+'                future = it->second;                 // join the lookup already running   //@k_join',
+'            } else {',
+'                future = promise.get_future().share();   //@k_mkfut',
+'                inflight_.emplace(host, future);     // we are the leader for this key   //@k_reg',
+'                leader = true;                       //@k_flag',
+'            }',
+'        }                                            // releases mu_   //@k_close1',
+'        if (!leader) return future.get();            // wait OUTSIDE the lock   //@k_wait',
+'        std::string ip = slow_lookup(host);          // no lock held   //@k_lookup',
+'        {',
+'            std::lock_guard<std::mutex> lock(mu_);   // takes mu_ again   //@k_lock2',
+'            map_[host] = ip;                         //@k_store',
+'            inflight_.erase(host);                   //@k_erase',
+'        }                                            // releases mu_   //@k_close2',
+'        promise.set_value(ip);                       // wakes the followers   //@k_setv',
+'        return ip;                                   //@k_ret',
+'    }',
+'    // NOT HANDLED (see "Model and limits"): slow_lookup() throwing, timeouts,',
+'    // cancellation, eviction, and cleanup of inflight_ entries on failure.',
+'private:',
+'    std::mutex mu_;',
+'    std::unordered_map<std::string, std::string> map_;',
+'    std::unordered_map<std::string, std::shared_future<std::string>> inflight_;',
+'};']);
+
+/* ---------- the explicit programs: one instruction list per thread ---------- */
+const V1={id:'perop',n:1,name:'1 · Per-operation lock',short:'1 Per-op',tag:'the PR',src:code(V1SRC),file:'resolver.cpp (variant 1)',
+ blurb:'A mutex guards each cache call separately. This is what the PR does.',
+ scopes:[['get_lock','get_close'],['put_lock','put_close']],
+ prog:[
+  {id:'lock',k:'lock',lines:['get_lock'],title:'Cache::get takes mu_'},
+  {id:'get',k:'get',holds:true,lines:['get_find','get_miss','get_hit','get_close'],title:'Cache::get reads map_ and releases mu_'},
+  {id:'lstart',k:'lstart',lines:['res_lookup'],title:'resolve() starts slow_lookup (no lock held)'},
+  {id:'lend',k:'lend',lines:['res_lookup'],title:'slow_lookup returns'},
+  {id:'lock2',k:'lock',lines:['put_lock'],title:'Cache::put takes mu_'},
+  {id:'put',k:'put',holds:true,lines:['put_store','put_close','res_ret'],title:'Cache::put stores and releases mu_'}]};
+const V2={id:'coarse',n:2,name:'2 · Coarse lock',short:'2 Coarse',tag:'lock held during lookup',src:code(V2SRC),file:'resolver.cpp (variant 2)',
+ blurb:'One lock for the whole resolve(), including the slow lookup.',
+ scopes:[['c_lock','c_ret']],
+ prog:[
+  {id:'lock',k:'lock',lines:['c_lock'],title:'resolve() takes mu_ (held until return)'},
+  {id:'check',k:'check',holds:true,lines:['c_find','c_hit'],title:'resolve() checks map_'},
+  {id:'lstart',k:'lstart',holds:true,lines:['c_lookup'],title:'resolve() starts slow_lookup (mu_ held)'},
+  {id:'lend',k:'lend',holds:true,lines:['c_lookup'],title:'slow_lookup returns (mu_ still held)'},
+  {id:'store',k:'store',holds:true,lines:['c_store'],title:'resolve() stores the result'},
+  {id:'ret',k:'ret',holds:true,lines:['c_ret'],title:'resolve() returns and releases mu_'}]};
+const V3={id:'coalesce',n:3,name:'3 · Per-key coalescing',short:'3 Coalesce',tag:'share in-flight work',src:code(V3SRC),file:'resolver.cpp (variant 3)',
+ blurb:'Short locks only. The first caller of a key looks it up; later callers of that key wait on its shared_future.',
+ scopes:[['k_lock1','k_close1'],['k_lock2','k_close2']],
+ prog:[
+  {id:'lock',k:'lock',lines:['k_lock1'],title:'resolve() takes mu_ (short section)'},
+  {id:'decide',k:'decide',holds:true,lines:['k_find','k_hit','k_ifind','k_join','k_mkfut','k_reg','k_flag','k_close1'],title:'decide: hit, join in-flight, or lead'},
+  {id:'wait',k:'wait',lines:['k_wait'],title:'future.get() waits outside the lock'},
+  {id:'lstart',k:'lstart',lines:['k_lookup'],title:'leader starts slow_lookup (no lock held)'},
+  {id:'lend',k:'lend',lines:['k_lookup'],title:'slow_lookup returns'},
+  {id:'lock2',k:'lock',lines:['k_lock2'],title:'leader takes mu_ to publish'},
+  {id:'publish',k:'publish',holds:true,lines:['k_store','k_erase','k_close2'],title:'leader stores result, erases inflight_ entry'},
+  {id:'setv',k:'setv',lines:['k_setv','k_ret'],title:'leader calls promise.set_value'}]};
+const VARIANTS={perop:V1,coarse:V2,coalesce:V3};
+for(const v of Object.values(VARIANTS)){v.idx={};v.prog.forEach((o,i)=>v.idx[o.id]=i);v.lineNo={};v.src.forEach((l,i)=>{if(l.id)v.lineNo[l.id]=i+1})}
+
+/* ---------- workloads (explicit, shared by all variants) ---------- */
+const LAT={'db.internal':100,'cdn.internal':20}, VAL={'db.internal':'10.0.0.7','cdn.internal':'10.0.0.9'};
+const WORKLOADS={
+ same:{id:'same',name:'Same key',keys:{A:'db.internal',B:'db.internal'},cache0:{},
+   desc:'A and B both call resolve("db.internal"). Cache starts empty. Both arrive at t=0.'},
+ diff:{id:'diff',name:'Different keys',keys:{A:'db.internal',B:'cdn.internal'},cache0:{},
+   desc:'A calls resolve("db.internal") (slow, 100). B calls resolve("cdn.internal") (fast, 20). Cache starts empty.'},
+ hit:{id:'hit',name:'Unrelated cached key',keys:{A:'db.internal',B:'cdn.internal'},cache0:{'cdn.internal':'10.0.0.9'},
+   desc:'A calls resolve("db.internal") (miss, 100). B calls resolve("cdn.internal"), which is already cached.'}};
+for(const w of Object.values(WORKLOADS)){w.lat=LAT;w.val=VAL}
+const COSTS={'cache operation (get, put, check, store, decide, publish)':1,'lock, unlock, future wait, set_value':0,'slow_lookup("db.internal")':100,'slow_lookup("cdn.internal")':20};
+
+/* ---------- named schedules: a preference per step, then a fallback order. 'T' = let the clock jump to the next lookup completion. ---------- */
+const SCHEDULES={
+ dup:{id:'dup',name:'Both miss, then both look up',seq:'AABBAB',then:'AB',
+   note:'A checks and misses, B checks and misses, A starts a lookup, B starts a lookup.'},
+ stale:{id:'stale',name:'B finishes while A is paused after its miss',seq:'AABBBT',then:'BTA',
+   note:'A checks and misses, then pauses. B does the whole job and stores the result. A resumes and acts on its old miss.'},
+ serial:{id:'serial',name:'A finishes, then B',seq:'',then:'ATB',note:'No overlap: the schedule a single-threaded test exercises.'},
+ rr:{id:'rr',name:'Strict alternation (A, B, A, B, ...)',seq:'ABABABABABABABABABAB',then:'AB',note:'Each thread gets one event in turn while it can run.'}};
+
+/* ---------- state machine ---------- */
+function init(variant,workload){
+  const W=WORKLOADS[workload];
+  const s={variant,workload,now:0,mu:{owner:null,since:0},cache:Object.assign({},W.cache0),inflight:{},futs:{},nextFut:1,lookups:[],dups:0,th:{}};
+  for(const t of THREADS)s.th[t]={pc:0,done:false,doneAt:null,key:W.keys[t],local:{},blocked:null,wait:{mutex:0,future:0},result:null,how:null};
+  return s;
+}
+const nextOp=(s,t)=>VARIANTS[s.variant].prog[s.th[t].pc];
+const subst=(s,t,x)=>x.replace('slow_lookup','slow_lookup("'+s.th[t].key+'")');
+function pending(s){return s.lookups.filter(l=>!l.consumed&&l.due>s.now)}
+function describeNext(s,t){const th=s.th[t];if(th.done)return 'returned '+th.result;return subst(s,t,nextOp(s,t).title)}
+function runnable(s,a){
+  if(a==='T'){
+    const p=pending(s);
+    if(!p.length)return {ok:false,kind:'clock',reason:'Rejected: the clock has nothing to wait for. No lookup is in flight, and time only moves through step costs or by jumping to the next lookup completion.'};
+    return {ok:true,kind:'clock'};
+  }
+  const th=s.th[a];
+  if(th.done)return {ok:false,kind:'done',reason:'Rejected: '+a+' has already returned '+th.result+' ('+th.how+').'};
+  const op=nextOp(s,a);
+  if(op.k==='lock'&&s.mu.owner){
+    const o=s.mu.owner;
+    return {ok:false,kind:'mutex',by:o,reason:'Rejected: '+a+' cannot run. Its next step is "'+subst(s,a,op.title)+'" but mu_ is held by '+o+' since t='+s.mu.since+'. '+o+' is at "'+describeNext(s,o)+'" and has to release mu_ first.'};
+  }
+  if(op.k==='wait'){
+    const f=s.futs[th.local.fut];
+    if(!f.ready)return {ok:false,kind:'future',by:f.leader,reason:'Rejected: '+a+' is blocked in future.get() for "'+th.key+'". Leader '+f.leader+' has not called set_value yet; '+f.leader+' is at "'+describeNext(s,f.leader)+'".'};
+  }
+  if(op.k==='lend'){
+    const lk=s.lookups[th.local.lk];
+    if(lk.due>s.now)return {ok:false,kind:'timer',reason:'Rejected: '+a+' is inside slow_lookup("'+th.key+'"), due at t='+lk.due+' (now t='+s.now+'). Step the other thread or advance the clock.'};
+  }
+  return {ok:true,kind:'ready'};
+}
+function status(s,a){
+  const th=s.th[a];
+  if(th.done)return {kind:'done',label:'done',text:'returned '+th.result+' ('+th.how+')'};
+  const r=runnable(s,a);
+  if(r.ok)return {kind:'ready',label:'runnable',text:''};
+  if(r.kind==='mutex')return {kind:'blocked',label:'BLOCKED on mu_',text:'mu_ is held by '+r.by+' since t='+s.mu.since};
+  if(r.kind==='future')return {kind:'blocked',label:'BLOCKED on shared lookup',text:'leader '+r.by+' has not called set_value'};
+  return {kind:'timer',label:'in slow_lookup',text:'lookup completes at t='+s.lookups[th.local.lk].due};
+}
+function refresh(s,ev){
+  for(const t of THREADS){
+    const th=s.th[t];
+    if(th.done){th.blocked=null;continue}
+    const r=runnable(s,t), blk=!r.ok&&(r.kind==='mutex'||r.kind==='future');
+    if(blk&&!th.blocked){th.blocked={since:s.now,on:r.kind,by:r.by};ev.blocks.push({t,on:r.kind,by:r.by})}
+    else if(!blk&&th.blocked){const w=s.now-th.blocked.since;th.wait[th.blocked.on]+=w;ev.wakes.push({t,waited:w,on:th.blocked.on});th.blocked=null}
+  }
+}
+function step(s0,a){
+  const r=runnable(s0,a);
+  if(!r.ok){const e=new Error(r.reason);e.info=r;throw e}
+  const s=structuredClone(s0), V=VARIANTS[s.variant], W=WORKLOADS[s.workload];
+  const ev={actor:a,t0:s.now,lines:[],flags:[],concl:[],blocks:[],wakes:[],hold:null};
+  if(a==='T'){
+    const due=Math.min(...pending(s).map(l=>l.due));
+    const done=s.lookups.filter(l=>!l.consumed&&l.due===due);
+    s.now=due;ev.op='clock';ev.k='clock';
+    ev.title='Clock advances to t='+due;
+    ev.text='Nothing runs while the clock jumps. At t='+due+' the lookup'+(done.length>1?'s':'')+' of '+done.map(l=>l.tid+' ("'+l.key+'")').join(' and ')+' complete'+(done.length>1?'':'s')+'. A thread that was not stepped meanwhile is treated as descheduled, not as waiting.';
+  }else{
+    const th=s.th[a],op=V.prog[th.pc],key=th.key;
+    ev.op=op.id;ev.k=op.k;ev.lines=op.lines.slice();ev.title=subst(s,a,op.title);
+    const need=()=>{if(s.mu.owner!==a)throw new Error('invariant violated: '+a+' executed '+op.id+' without holding mu_')};
+    if(op.holds)need();
+    const release=()=>{s.mu.owner=null;ev.hold='released'};
+    const finish=(how,val)=>{th.done=true;th.doneAt=s.now;th.result=val;th.how=how};
+    const lat=W.lat[key];
+    switch(op.k){
+    case 'lock':
+      s.mu.owner=a;s.mu.since=s.now;ev.hold='taken';th.pc++;
+      ev.text=(th.pc===1?
+        (s.variant==='perop'?a+' enters Cache::get and constructs the lock_guard: mu_ was free, so '+a+' now owns it. Nothing has been read yet.':
+         s.variant==='coarse'?a+' enters resolve() and takes mu_. In this variant it keeps mu_ until resolve() returns, lookup included.':
+         a+' enters resolve() and takes mu_ for a short critical section that only decides what to do.'):
+        (s.variant==='perop'?a+' enters Cache::put and takes mu_ to store its result.':a+' takes mu_ again to publish the result.'));
+      break;
+    case 'get':{
+      s.now+=1;const hit=s.cache[key];ev.lines=hit!==undefined?['get_find','get_hit','get_close','res_get']:['get_find','get_miss','get_close','res_get'];
+      release();
+      if(hit!==undefined){finish('cache hit',hit);ev.text=a+' finds "'+key+'" in map_ under mu_ and returns '+hit+'. The lock_guard releases mu_. '+a+' is done.';ev.flags.push('hit')}
+      else{th.local.miss=true;th.pc++;ev.flags.push('miss');
+        ev.text=a+' looks up "'+key+'" in map_ under mu_: not found. The closing brace releases mu_ and get() returns nullopt. '+a+' now believes "'+key+'" is missing, and nothing protects that belief any more.';
+        ev.concl.push('After this event the lock is free but '+a+' still holds the result of its check. Check and action are two separate critical sections.')}
+      break}
+    case 'lstart':{
+      const prior=s.lookups.filter(l=>l.key===key);
+      s.lookups.push({tid:a,key,start:s.now,due:s.now+lat,consumed:false,dup:null});th.local.lk=s.lookups.length-1;th.pc++;
+      ev.text=a+' calls slow_lookup("'+key+'") '+(op.holds?'while holding mu_':'with no lock held')+'. Simulated duration '+lat+', so it completes at t='+(s.now+lat)+'.';
+      if(prior.length){
+        const stale=s.cache[key]!==undefined, kind=stale?'stale':'concurrent';
+        s.dups++;s.lookups[th.local.lk].dup=kind;ev.dup=kind;
+        ev.concl.push(stale?
+          'DUPLICATE (stale miss): "'+key+'" is already in the cache, stored by '+prior[0].tid+'. '+a+' acts on a miss it observed earlier.':
+          'DUPLICATE (concurrent): '+prior[0].tid+' is already looking up "'+key+'". Neither thread can see the other\'s lookup, so both do the work.');
+        ev.text+=' This is lookup #'+s.lookups.length+' for the same key.';
+      }
+      break}
+    case 'lend':{
+      const lk=s.lookups[th.local.lk];lk.consumed=true;th.local.ip=W.val[key];th.pc++;ev.t0=lk.start;
+      ev.text='slow_lookup("'+key+'") returns '+th.local.ip+' to '+a+' (started t='+lk.start+', completed t='+lk.due+').'+(op.holds?' mu_ was held by '+a+' the entire time.':'');
+      break}
+    case 'put':{
+      s.now+=1;const had=s.cache[key]!==undefined;s.cache[key]=th.local.ip;release();finish('own lookup',th.local.ip);
+      ev.text=a+' stores "'+key+'" = '+th.local.ip+' under mu_, releases it and returns.'+(had?' The cache already held this key, so the write replaces an identical value: the second lookup was wasted work.':'');
+      if(had)ev.flags.push('overwrite');
+      break}
+    case 'check':{
+      s.now+=1;const hit=s.cache[key];
+      if(hit!==undefined){release();finish('cache hit',hit);ev.lines=['c_find','c_hit'];ev.flags.push('hit');
+        ev.text=a+' finds "'+key+'" in map_ and returns '+hit+', releasing mu_. '+(th.wait.mutex?a+' had been waiting for mu_ and now finds the answer already cached.':'')}
+      else{th.pc++;ev.lines=['c_find'];ev.flags.push('miss');ev.text=a+' looks up "'+key+'" in map_: not found. mu_ stays held.'}
+      break}
+    case 'store':
+      s.now+=1;s.cache[key]=th.local.ip;th.pc++;ev.text=a+' stores "'+key+'" = '+th.local.ip+' in map_ (still holding mu_).';break;
+    case 'ret':
+      release();finish('own lookup',th.local.ip);ev.text=a+' returns '+th.local.ip+'; the lock_guard destructor releases mu_ after holding it since t='+s.mu.since+'.';break;
+    case 'decide':{
+      s.now+=1;const hit=s.cache[key],inf=s.inflight[key];
+      if(hit!==undefined){release();finish('cache hit',hit);ev.lines=['k_find','k_hit'];ev.flags.push('hit');ev.text=a+' finds "'+key+'" in map_ and returns '+hit+'; the lock_guard releases mu_.'}
+      else if(inf!==undefined){
+        th.local.role='follower';th.local.fut=inf;release();th.pc=V.idx.wait;
+        ev.lines=['k_find','k_ifind','k_join','k_close1'];ev.flags.push('join');
+        ev.text=a+' misses in map_, finds an inflight_ entry for "'+key+'" (led by '+s.futs[inf].leader+') and copies its shared_future. mu_ is released; '+a+' will wait on the future, not on the mutex.';
+        ev.concl.push('Coalesced: '+a+' will not start its own lookup of "'+key+'".')}
+      else{
+        const id=s.nextFut++;s.futs[id]={key,leader:a,ready:false,value:null};s.inflight[key]=id;th.local.role='leader';th.local.fut=id;release();th.pc=V.idx.lstart;
+        ev.lines=['k_find','k_ifind','k_mkfut','k_reg','k_flag','k_close1'];ev.flags.push('lead');
+        ev.text=a+' misses in map_ and finds no inflight_ entry for "'+key+'", so it registers one and becomes the leader. This check and the registration happen in one critical section, so no other caller of "'+key+'" can slip between them.'}
+      break}
+    case 'wait':{
+      const f=s.futs[th.local.fut];finish('shared lookup',f.value);ev.flags.push('shared');
+      ev.text=a+' returns from future.get() with '+f.value+', the result of '+f.leader+'\'s lookup'+(th.wait.future?' (after waiting '+th.wait.future+' for it)':'')+'. No second lookup was made.';break}
+    case 'publish':
+      s.now+=1;s.cache[key]=th.local.ip;delete s.inflight[key];release();th.pc++;
+      ev.text=a+' stores "'+key+'" = '+th.local.ip+' in map_ and erases the inflight_ entry, then releases mu_. The future is not ready yet: set_value comes next.';
+      ev.concl.push('Between publish and set_value the key is in map_ (new callers hit) but followers are still waiting for set_value.');break;
+    case 'setv':{
+      const f=s.futs[th.local.fut];f.ready=true;f.value=th.local.ip;finish('own lookup',th.local.ip);
+      const waiting=THREADS.filter(t=>t!==a&&!s.th[t].done&&s.th[t].local.fut===th.local.fut);
+      ev.text=a+' calls set_value('+th.local.ip+') and returns.'+(waiting.length?' Waiting follower'+(waiting.length>1?'s':'')+': '+waiting.join(', ')+'.':'');break}
+    }
+  }
+  ev.t1=s.now;refresh(s,ev);
+  return {state:s,event:ev};
+}
+function replay(variant,workload,choices){
+  const states=[init(variant,workload)],events=[];
+  for(const c of choices){const r=step(states[states.length-1],c);states.push(r.state);events.push(r.event)}
+  return {states,events};
+}
+function allDone(s){return THREADS.every(t=>s.th[t].done)}
+function pick(s,sched,i){
+  const order=[];if(i<sched.seq.length)order.push(sched.seq[i]);
+  for(const c of sched.then)order.push(c);for(const c of 'ABT')order.push(c);
+  const first=order[0];
+  for(const c of order)if(runnable(s,c).ok)return {actor:c,fallback:(i<sched.seq.length&&c!==first)?first:null};
+  return null;
+}
+function autoRun(variant,workload,schedId,from){
+  const sched=SCHEDULES[schedId],ch=(from||[]).slice();
+  let s=replay(variant,workload,ch).states.pop();
+  for(let g=0;g<200&&!allDone(s);g++){const p=pick(s,sched,ch.length);if(!p)break;ch.push(p.actor);s=step(s,p.actor).state}
+  return ch;
+}
+function metrics(s){
+  const m={lookups:s.lookups.length,dups:s.dups,work:0,done:allDone(s),now:s.now,waitMutex:{},waitFuture:{},finish:{},waitTotal:0};
+  for(const l of s.lookups)m.work+=l.due-l.start;
+  for(const t of THREADS){const th=s.th[t];m.waitMutex[t]=th.wait.mutex;m.waitFuture[t]=th.wait.future;m.finish[t]=th.doneAt;m.waitTotal+=th.wait.mutex+th.wait.future}
+  m.makespan=m.done?Math.max(...THREADS.map(t=>s.th[t].doneAt)):s.now;
+  m.waitA=m.waitMutex.A+m.waitFuture.A;m.waitB=m.waitMutex.B+m.waitFuture.B;
+  return m;
+}
+/* exhaustive exploration of every legal schedule of the model (memoised dynamic programme over states) */
+const MEMO=new Map();
+function aggregate(s){
+  const key=JSON.stringify(s);let r=MEMO.get(key);if(r)return r;
+  if(allDone(s)){const m=metrics(s);r={paths:1,dupPaths:m.dups>0?1:0,dupMin:m.dups,dupMax:m.dups,lkMin:m.lookups,lkMax:m.lookups,spanMin:m.makespan,spanMax:m.makespan,waitMax:m.waitTotal,waitBMax:m.waitB,dead:0}}
+  else{
+    const kids=ACTORS.filter(a=>runnable(s,a).ok);
+    if(!kids.length)r={paths:1,dupPaths:0,dupMin:Infinity,dupMax:-Infinity,lkMin:Infinity,lkMax:-Infinity,spanMin:Infinity,spanMax:-Infinity,waitMax:0,waitBMax:0,dead:1};
+    else{
+      r={paths:0,dupPaths:0,dupMin:Infinity,dupMax:-Infinity,lkMin:Infinity,lkMax:-Infinity,spanMin:Infinity,spanMax:-Infinity,waitMax:0,waitBMax:0,dead:0};
+      for(const a of kids){const c=aggregate(step(s,a).state);
+        r.paths+=c.paths;r.dupPaths+=c.dupPaths;r.dead+=c.dead;
+        r.dupMin=Math.min(r.dupMin,c.dupMin);r.dupMax=Math.max(r.dupMax,c.dupMax);
+        r.lkMin=Math.min(r.lkMin,c.lkMin);r.lkMax=Math.max(r.lkMax,c.lkMax);
+        r.spanMin=Math.min(r.spanMin,c.spanMin);r.spanMax=Math.max(r.spanMax,c.spanMax);
+        r.waitMax=Math.max(r.waitMax,c.waitMax);r.waitBMax=Math.max(r.waitBMax,c.waitBMax)}
+    }
+  }
+  MEMO.set(key,r);return r;
+}
+
+/* ---------- guided chapters (data). `from`/`to` are event counts of the chapter's schedule run. ---------- */
+const P=(m,t)=>m.waitMutex[t]+m.waitFuture[t];
+const CHAPTERS=[
+ {id:'pr',title:'The PR',variant:'perop',workload:'same',sched:'dup',from:0,to:0,tab:'event',codeTab:'diff',
+  q:'Two threads request the same missing key. The PR makes every cache access mutex-protected. Is the resolver now correct?',
+  a:c=>'Memory-safe, yes: every read and write of <code>map_</code> happens under <code>mu_</code> (supplied code, <code>Cache::get</code> and <code>Cache::put</code>). Whether the expensive lookup happens once is a different question. Step through to find out.'},
+ {id:'serial',title:'The schedule tests see',variant:'perop',workload:'same',sched:'serial',from:0,to:'end',tab:'event',
+  q:'First, no overlap: A finishes completely, then B starts. How many lookups?',
+  a:c=>'<b>'+c.m.lookups+' lookup.</b> A stores the result and B\'s <code>get()</code> finds it. Correct, and it is the only schedule a single-threaded test ever produces.'},
+ {id:'bothmiss',title:'Both miss',variant:'perop',workload:'same',sched:'dup',from:2,to:4,tab:'event',
+  q:'A has checked the cache and missed, and the lock is free. B checks next. What does B see?',
+  a:c=>'The same miss. A has not stored anything yet, and nothing records that A is about to look the key up. The mutex made each <i>check</i> atomic; it did not connect the check to what follows.'},
+ {id:'dup',title:'Duplicate lookup',variant:'perop',workload:'same',sched:'dup',from:4,to:6,tab:'event',
+  q:'Both threads have missed. A starts its lookup. Does B know?',
+  a:c=>'No. B starts a second lookup of the same key. <b>Protected cache access does not coalesce concurrent requests.</b> The race window is the gap between <code>get()</code> returning and <code>put()</code> storing, and the lock is not held across it.'},
+ {id:'finish',title:'What it cost',variant:'perop',workload:'same',sched:'dup',from:6,to:'end',tab:'event',
+  q:'Let both finish. How many lookups for one key?',
+  a:c=>'<b>'+c.m.lookups+' lookups</b> ('+c.m.work+' simulated units of lookup work instead of '+(c.m.work/c.m.lookups)+'). The second <code>put()</code> overwrites an identical value. The model flags this as a duplicate; it says nothing about how expensive a real lookup is.'},
+ {id:'when',title:'When does it happen?',variant:'perop',workload:'same',sched:'dup',from:0,to:0,tab:'event',free:true,
+  q:'Your turn. Step A and B yourself (the Step A / Step B buttons, or keys A and B). The banner tells you whether a duplicate is still avoidable from the current state. Can you find a schedule that avoids it?',
+  a:c=>'The model has <b>'+c.agg.paths+'</b> distinct legal orderings of these events (counting where the clock jumps); <b>'+c.agg.dupPaths+'</b> of them do a duplicate lookup. The only ones that avoid it are those where one thread completes its whole <code>resolve()</code> before the other starts. (Counting orderings is not a probability: it says how easy the bug is to reach, not how often it happens.) Try the “paused after its miss” schedule: <button data-act="loadsched" data-v="stale">replay it</button> (A acts on a miss that is already stale), or <button data-act="loadsched" data-v="serial">replay the serial one</button>.'},
+ {id:'coarse',title:'Fix 1: hold the lock',variant:'coarse',workload:'same',sched:'dup',from:3,to:'end',tab:'event',
+  q:'Same schedule, but resolve() now holds the mutex for the whole lookup. A is inside slow_lookup and B arrives. What happens to B?',
+  a:c=>'B is <b>blocked</b> on <code>mu_</code> until A returns, then finds the key cached. <b>'+c.m.lookups+' lookup</b>, no duplicate. B waited <b>'+P(c.m,'B')+'</b> simulated units. Next question: what if B wanted a <i>different</i> key?'},
+ {id:'coarsediff',title:'The price of the coarse lock',variant:'coarse',workload:'diff',sched:'dup',from:3,to:'end',tab:'event',
+  q:'B wants "cdn.internal", a different key whose own lookup is only 20 units. Does B need A\'s lookup to finish?',
+  a:c=>'In this code, yes. <code>mu_</code> protects the whole map, so B waits <b>'+P(c.m,'B')+'</b> units behind a lookup it has nothing to do with, and finishes at t=<b>'+c.m.finish.B+'</b>. Its own work is 1 + 20 + 1 = 22 units. The duplicate is gone; so is the concurrency.'},
+ {id:'coalesce',title:'Fix 2: coalesce per key',variant:'coalesce',workload:'same',sched:'dup',from:2,to:'end',tab:'event',
+  q:'A has registered an in-flight entry for the key and released the lock. B arrives for the same key. What does B do?',
+  a:c=>'B finds A\'s entry, copies its <code>shared_future</code> and waits on <i>that</i>, with the mutex free. <b>'+c.m.lookups+' lookup</b>, B got A\'s result after waiting <b>'+c.m.waitFuture.B+'</b> units on the shared future (waiting for the shared work, not for a lock), plus '+c.m.waitMutex.B+' on <code>mu_</code> at the start.'},
+ {id:'coalescediff',title:'Different keys, independently',variant:'coalesce',workload:'diff',sched:'dup',from:2,to:'end',tab:'event',
+  q:'Now B wants a different key. Does it have to wait for A?',
+  a:c=>'No. Both become leaders of their own key. B finishes at t=<b>'+c.m.finish.B+'</b>, A at t=<b>'+c.m.finish.A+'</b>; B\'s waiting is only <b>'+P(c.m,'B')+'</b> (the brief <code>mu_</code> contention at the start). Same-key callers share work, different keys proceed.'},
+ {id:'compare',title:'Compare and limits',variant:'coalesce',workload:'same',sched:'dup',from:0,to:0,tab:'compare',
+  q:'Three implementations, the same workload definition, every schedule of the model.',
+  a:c=>'Open the <b>Compare</b> tab for the numbers and <b>Model and limits</b> for what none of this proves. Per-key coalescing is not a complete answer: as written it does not handle a throwing lookup, timeouts, cancellation or eviction.'}
+];
+return {THREADS,ACTORS,VARIANTS,WORKLOADS,SCHEDULES,COSTS,CHAPTERS,init,runnable,status,step,replay,pick,autoRun,metrics,aggregate,allDone,describeNext,pending,
+  clearMemo:()=>MEMO.clear()};
+})();
+if(typeof module!=='undefined')module.exports=Engine;
+</script>
+
+<script id="ui">
+(()=>{
+const E=Engine,$=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.body.classList.contains('nomotion');
+const S={variant:'perop',workload:'same',sched:'dup',choices:[],cursor:0,mode:'intro',chapter:0,revealed:false,playing:false,tab:'event',codeTab:'code',rej:null,timer:null,sel:null};
+let R=null;
+const recompute=()=>{R=E.replay(S.variant,S.workload,S.choices)};
+const cur=()=>R.states[S.cursor];
+const curEv=()=>S.cursor>0?R.events[S.cursor-1]:null;
+const V=()=>E.VARIANTS[S.variant];
+const say=(t,rej)=>{S.rej=rej?t:null;const m=$('#msg');m.textContent=t;m.className=rej?'rej':''};
+const lineRange=ids=>{const n=ids.map(i=>V().lineNo[i]).filter(Boolean).sort((a,b)=>a-b);if(!n.length)return '';return n[0]===n[n.length-1]?'L'+n[0]:'L'+n[0]+'–L'+n[n.length-1]};
+const fmt=x=>x===Infinity||x===-Infinity||x==null?'–':String(x);
+
+/* ---------- actions ---------- */
+function stopPlay(){S.playing=false;clearInterval(S.timer);S.timer=null;$('#bPlay').innerHTML='&#9654; Play'}
+function setConfig(v,w,sch){
+  stopPlay();if(v)S.variant=v;if(w)S.workload=w;if(sch)S.sched=sch;
+  S.choices=[];S.cursor=0;recompute();
+}
+function reset(){stopPlay();S.choices=[];S.cursor=0;recompute();say('Reset to t=0. Choices cleared; the selected schedule applies again from the first event.');render()}
+function tryStep(a,manual){
+  const s=cur();const r=E.runnable(s,a);
+  if(!r.ok){say(r.reason,true);flash(a);render();return false}
+  if(S.cursor<S.choices.length){
+    if(S.choices[S.cursor]===a){S.cursor++;recompute();say('');render();return true}
+    S.choices=S.choices.slice(0,S.cursor);say('Branched: you chose '+a+' where the recorded run had '+S.choices.length+' later events; the old future was discarded.');
+  }else say('');
+  S.choices.push(a);recompute();S.cursor++;render();return true;
+}
+function stepPolicy(){
+  if(S.cursor<S.choices.length){S.cursor++;say('');render();return true}
+  const s=cur();if(E.allDone(s)){say('Both threads have returned. Rewind, reset, or pick another schedule.');stopPlay();render();return false}
+  const p=E.pick(s,E.SCHEDULES[S.sched],S.cursor);
+  if(!p){say('No actor can run: deadlock in the model (this should never happen).',true);stopPlay();render();return false}
+  S.choices.push(p.actor);recompute();S.cursor++;
+  say(p.fallback?'Schedule preferred '+p.fallback+' here, but '+p.fallback+' cannot run, so '+p.actor+' ran instead.':'');
+  render();return true;
+}
+function back(){stopPlay();if(S.cursor>0){S.cursor--;say('Rewound to event '+S.cursor+'. State is rebuilt by replaying events 1 to '+S.cursor+' from the initial state.');render()}}
+function toEnd(){stopPlay();const full=E.autoRun(S.variant,S.workload,S.sched,S.choices.slice(0,S.cursor));S.choices=full;recompute();S.cursor=full.length;say('Ran the schedule to the end.');render()}
+function goTo(n){stopPlay();S.cursor=Math.max(0,Math.min(n,S.choices.length));say('');render()}
+function play(){
+  if(S.playing){stopPlay();render();return}
+  if(E.allDone(cur())&&S.cursor>=S.choices.length){say('Both threads have returned. Reset or rewind first.');return}
+  S.playing=true;$('#bPlay').innerHTML='&#10074;&#10074; Pause';
+  const tick=()=>{if(!stepPolicy()){stopPlay();render()}else if(E.allDone(cur())&&S.cursor>=S.choices.length){stopPlay();render()}};
+  if(reduced())toEnd();
+  else S.timer=setInterval(tick,+$('#spSel').value);
+}
+function flash(a){setTimeout(()=>{const el=$('#lane'+a);if(el&&!reduced()){el.classList.remove('pulse');void el.offsetWidth;el.classList.add('pulse')}},0)}
+
+/* ---------- guided mode ---------- */
+function chCtx(ch){
+  const choices=E.autoRun(ch.variant,ch.workload,ch.sched,[]);
+  const rp=E.replay(ch.variant,ch.workload,choices);
+  return {m:E.metrics(rp.states[rp.states.length-1]),agg:E.aggregate(E.init(ch.variant,ch.workload)),n:choices.length,choices};
+}
+const toN=(ch,c,x)=>x==='end'?c.n:x;
+function applyChapter(i,revealed){
+  stopPlay();S.chapter=Math.max(0,Math.min(i,E.CHAPTERS.length-1));const ch=E.CHAPTERS[S.chapter],c=chCtx(ch);
+  S.variant=ch.variant;S.workload=ch.workload;S.sched=ch.sched;S.choices=ch.free?[]:c.choices;recompute();
+  S.cursor=revealed?toN(ch,c,ch.to):toN(ch,c,ch.from);S.revealed=!!revealed;S.tab=ch.tab||'event';S.codeTab=ch.codeTab||'code';
+  say('');render();
+}
+function reveal(){
+  const ch=E.CHAPTERS[S.chapter],c=chCtx(ch);S.revealed=true;
+  const target=toN(ch,c,ch.to);
+  if(ch.free){render();return}
+  if(S.cursor>=target||reduced()){S.cursor=Math.max(S.cursor,target);render();return}
+  stopPlay();S.playing=true;
+  S.timer=setInterval(()=>{if(S.cursor<target&&S.cursor<S.choices.length){S.cursor++;render()}else{stopPlay();render()}},+$('#spSel').value*.7);
+}
+function nextChapter(){const ch=E.CHAPTERS[S.chapter];if(!S.revealed){reveal();return}if(S.chapter<E.CHAPTERS.length-1)applyChapter(S.chapter+1,false)}
+function prevChapter(){if(S.revealed&&S.cursor!==undefined&&!E.CHAPTERS[S.chapter].free){applyChapter(S.chapter,false);return}if(S.chapter>0)applyChapter(S.chapter-1,true)}
+function setMode(m){
+  stopPlay();S.mode=m;document.body.classList.toggle('intro',m==='intro');document.body.classList.toggle('guided',m==='guided');
+  $('#modeG').setAttribute('aria-pressed',m==='guided');$('#modeE').setAttribute('aria-pressed',m==='explore');
+  if(m==='guided')applyChapter(S.mode==='guided'&&S.chapter?S.chapter:0,false);
+  else if(m==='explore'){setConfig();say('Explore: choose an implementation, workload and schedule, then step, or choose the thread that runs next.');render()}
+}
+
+/* ---------- rendering ---------- */
+function renderControls(){
+  const seg=$('#varSeg');seg.innerHTML=Object.values(E.VARIANTS).map(v=>`<button data-act="variant" data-v="${v.id}" aria-pressed="${v.id===S.variant}" title="${esc(v.blurb)}">${esc(v.name)}</button>`).join('');
+  $('#wlSel').innerHTML=Object.values(E.WORKLOADS).map(w=>`<option value="${w.id}" ${w.id===S.workload?'selected':''}>${esc(w.name)}</option>`).join('');
+  $('#schSel').innerHTML=Object.values(E.SCHEDULES).map(w=>`<option value="${w.id}" ${w.id===S.sched?'selected':''}>${esc(w.name)}</option>`).join('');
+  $('#roCfg').innerHTML=`<b>${esc(V().name)}</b> · ${esc(E.WORKLOADS[S.workload].name)} · ${esc(E.SCHEDULES[S.sched].name)}`;
+  const sc=$('#scrub');sc.max=S.choices.length;sc.value=S.cursor;
+  $('#scrubLbl').textContent='event '+S.cursor+' of '+S.choices.length+(S.cursor<S.choices.length?' (recorded)':'');
+  const s=cur(),m=E.metrics(s);
+  $('#counters').innerHTML=
+   `<span class="pill ${m.dups?'bad':''}">lookups <b>${m.lookups}</b>${m.dups?' · duplicate <b>'+m.dups+'</b>':''}</span>`+
+   `<span class="pill">sim time <b>t=${s.now}</b></span>`+
+   `<span class="pill" title="time spent blocked on mu_ or on a shared lookup (simulated units)">waited A <b>${m.waitA}</b>${s.th.A.blocked?' …blocked':''} · B <b>${m.waitB}</b>${s.th.B.blocked?' …blocked':''}</span>`+
+   `<span class="pill" title="simulated units, not a benchmark">sim units</span>`;
+  $('#bBack').disabled=S.cursor===0;
+  $('#bStep').setAttribute('aria-disabled',E.allDone(s)&&S.cursor>=S.choices.length);
+}
+function renderCode(){
+  const v=V(),s=cur(),ev=curEv();
+  $('#codeName').textContent=' '+v.file;
+  $('#codeTabs').innerHTML=Object.values(E.VARIANTS).map(x=>'').join('')+
+   `<button data-act="codetab" data-v="code" aria-pressed="${S.codeTab==='code'}">Source</button>`+
+   (S.variant==='perop'?`<button data-act="codetab" data-v="diff" aria-pressed="${S.codeTab==='diff'}">The PR diff</button>`:'');
+  if(S.codeTab==='diff'&&S.variant==='perop'){
+    $('#code').innerHTML=PRDIFF.map(([k,t],i)=>`<div class="ln ${k==='+'?'add':k==='-'?'del':''}" style="grid-template-columns:30px 26px 1fr"><span class="no">${i+1}</span><span class="gm">${k===' '?'':k}</span><code>${esc(t)}</code></div>`).join('');
+    $('#codeLegend').innerHTML='Illustrative PR text made up for this demo (title, description and diff). The after-code is variant 1.';return;
+  }
+  const hl=new Set(ev?ev.lines:[]),tcls=ev?ev.actor:'T';
+  const marks={};
+  for(const t of E.THREADS){const th=s.th[t];if(!th.done){const f=v.prog[th.pc].lines[0];(marks[f]=marks[f]||[]).push(t)}}
+  const heldLines=new Set();
+  if(s.mu.owner){const o=s.mu.owner,th=s.th[o];if(!th.done){const f=v.lineNo[v.prog[th.pc].lines[0]];
+    for(const [a,b] of v.scopes){const A=v.lineNo[a],B=v.lineNo[b];if(f>=A&&f<=B){for(let i=A;i<=B;i++)heldLines.add(i)}}}}
+  const scopeLines=new Set();for(const [a,b] of v.scopes)for(let i=v.lineNo[a];i<=v.lineNo[b];i++)scopeLines.add(i);
+  $('#code').innerHTML=v.src.map((l,i)=>{
+    const n=i+1,cls=['ln'];
+    if(scopeLines.has(n))cls.push('scope');
+    if(heldLines.has(n))cls.push(s.mu.owner==='A'?'heldA':'heldB');
+    if(l.id&&hl.has(l.id))cls.push('hl'+tcls);
+    const mk=l.id&&marks[l.id]?marks[l.id].map(t=>`<span class="${t.toLowerCase()}">${t}▸</span>`).join(''):'';
+    return `<div class="${cls.join(' ')}" id="L${n}"><span class="no">${n}</span><span class="gm">${mk}</span><code>${esc(l.t)}</code></div>`}).join('');
+  $('#codeLegend').innerHTML=`<span class="sw" style="background:color-mix(in srgb,var(--ta) 38%,transparent)"></span>lines of the selected event (A) <span class="sw" style="background:color-mix(in srgb,var(--tb) 38%,transparent)"></span>(B) · <b>A▸ B▸</b> next line each thread will run · left bar: lock scope, tinted while a thread owns <code>mu_</code> there.`;
+  if(ev&&ev.lines.length){const first=v.lineNo[ev.lines[0]];const el=$('#L'+first);if(el&&!reduced()||el){const box=$('#code');const top=el.offsetTop-box.offsetTop;if(top<box.scrollTop||top>box.scrollTop+box.clientHeight-60)box.scrollTop=Math.max(0,top-80)}}
+}
+const PRDIFF=[
+ [' ','PR #212  Make the resolver cache thread-safe  (illustrative)'],
+ [' ','Concurrent resolve() calls corrupted the unordered_map. Guard it with a mutex.'],
+ [' ',''],
+ ['-','class Resolver {'],
+ ['-','    std::string resolve(const std::string& host) {'],
+ ['-','        auto it = cache_.find(host);'],
+ ['-','        if (it != cache_.end()) return it->second;'],
+ ['-','        std::string ip = slow_lookup(host);'],
+ ['-','        cache_[host] = ip;'],
+ ['-','        return ip;'],
+ ['-','    }'],
+ ['-','    std::unordered_map<std::string, std::string> cache_;  // unsynchronised'],
+ ['+','class Cache {   // get() and put() each hold mu_ for their own body only'],
+ ['+','    std::optional<std::string> get(const std::string& key);'],
+ ['+','    void put(const std::string& key, std::string value);'],
+ ['+','    std::mutex mu_;  std::unordered_map<std::string, std::string> map_;'],
+ ['+','};'],
+ [' ','class Resolver {'],
+ ['+','    std::string resolve(const std::string& host) {'],
+ ['+','        if (auto hit = cache_.get(host)) return *hit;'],
+ ['+','        std::string ip = slow_lookup(host);'],
+ ['+','        cache_.put(host, ip);'],
+ ['+','        return ip;'],
+ ['+','    }'],
+ ['+','    Cache cache_;'],
+ [' ','};'],
+ [' ',''],
+ [' ','Review: every access to map_ is inside a lock_guard.   ✓  Tests: pass.   ✓']
+];
+function renderLanes(){
+  const s=cur(),v=V(),ev=curEv(),W=E.WORKLOADS[S.workload];
+  // hazard banner
+  const ag=E.aggregate(s),m=E.metrics(s);let hz;
+  if(m.dups>0)hz=['bad',`Duplicate lookup happened: ${m.lookups} lookups were started for ${new Set(s.lookups.map(l=>l.key)).size} distinct key${new Set(s.lookups.map(l=>l.key)).size>1?'s':''}.`];
+  else if(ag.dead)hz=['bad','Model deadlock reachable from here (should not happen).'];
+  else if(E.allDone(s))hz=['ok',`Finished with no duplicate lookup: ${m.lookups} lookup${m.lookups>1?'s':''} for ${new Set(s.lookups.map(l=>l.key)).size} distinct key${new Set(s.lookups.map(l=>l.key)).size>1?'s':''}.`];
+  else if(ag.dupMax===0)hz=['ok',`No duplicate lookup is possible from here: all ${ag.paths} remaining orderings end with ${ag.lkMin===ag.lkMax?ag.lkMin:ag.lkMin+'–'+ag.lkMax} lookup${ag.lkMax>1?'s':''}.`];
+  else if(ag.dupMin>0)hz=['bad',`A duplicate lookup is now unavoidable: all ${ag.paths} remaining orderings produce one.`];
+  else hz=['warn',`A duplicate is still avoidable: ${ag.dupPaths} of ${ag.paths} remaining orderings produce one, ${ag.paths-ag.dupPaths} do not. <span class="ro">(exhaustive over this model)</span>`];
+  $('#haz').innerHTML=`<div class="haz ${hz[0]}" role="note"><span class="chip mod">Model</span> ${hz[1]}</div>`;
+  let h='';
+  for(const t of E.THREADS){
+    const th=s.th[t],st=E.status(s,t),r=E.runnable(s,t);
+    const op=th.done?null:v.prog[th.pc];
+    const pips=v.prog.map((o,i)=>`<i class="${i<th.pc||th.done?'d':i===th.pc?'c':''}"></i>`).join('');
+    h+=`<div class="lane ${t}" id="lane${t}"><div class="hd"><b class="${t}">Thread ${t}</b><code>resolve("${esc(th.key)}")</code><span class="st ${st.kind}">${esc(st.label)}</span><span class="spacer"></span>
+      <button data-act="step" data-t="${t}" data-fid="step${t}" aria-disabled="${!r.ok}" title="Run ${t}'s next event (key ${t})">Step ${t}</button></div>
+      <div class="pips" aria-hidden="true">${pips}</div>
+      <div class="nx">${th.done?`<b>returned ${esc(th.result)}</b> via ${esc(th.how)} at t=${th.doneAt}`:`<span class="ro">next:</span> ${esc(E.describeNext(s,t))}${op?` <span class="ro">(${lineRange(op.lines)})</span>`:''}`}</div>
+      ${!th.done&&!r.ok&&r.kind!=='done'?`<div class="why">${esc(st.text)}${r.kind==='mutex'||r.kind==='future'?' — waiting since t='+th.blocked.since:''}</div>`:''}</div>`;
+  }
+  const pend=E.pending(s),rc=E.runnable(s,'T');
+  h+=`<div class="lane" style="border-left-color:var(--mute)" id="laneT"><div class="hd"><b>Clock</b><code>t = ${s.now}</code><span class="ro">simulated units</span><span class="spacer"></span>
+    <button data-act="step" data-t="T" data-fid="stepT" aria-disabled="${!rc.ok}" title="Jump to the next lookup completion (key T)">Advance clock (T)</button></div>
+    <div class="nx ro">${pend.length?'next lookup completes at t='+Math.min(...pend.map(l=>l.due))+'. Cache operations cost 1; a thread you do not step is descheduled, not waiting.':'No lookup in flight. Cache operations cost 1 unit each.'}</div></div>`;
+  $('#lanes').innerHTML=h;
+  // resources
+  const owner=s.mu.owner,waiters=E.THREADS.filter(t=>s.th[t].blocked&&s.th[t].blocked.on==='mutex');
+  const cacheE=Object.entries(s.cache),inf=Object.entries(s.inflight);
+  const lks=s.lookups.filter(l=>!l.consumed);
+  $('#res').innerHTML=
+   `<div class="card"><h4>Mutex <code>mu_</code></h4><div class="big">${owner?`held by <span class="own ${owner}">${owner}</span> <span class="ro">since t=${s.mu.since}</span>`:'free'}</div><div class="ro">waiting: ${waiters.length?waiters.map(t=>`<span class="own ${t}">${t}</span>`).join(', '):'none'}</div></div>`+
+   `<div class="card"><h4>Cache <code>map_</code></h4><div class="mono">${cacheE.length?cacheE.map(([k,x])=>`${esc(k)} → ${esc(x)}`).join('<br>'):'<span class="ro">empty</span>'}</div></div>`+
+   `<div class="card"><h4>In-flight table <code>inflight_</code></h4><div class="mono">${S.variant==='coalesce'?(inf.length?inf.map(([k,id])=>`${esc(k)} → future led by ${s.futs[id].leader}`).join('<br>'):'<span class="ro">empty</span>'):'<span class="ro">does not exist in this variant</span>'}</div>${S.variant==='coalesce'&&Object.values(s.futs).length?`<div class="ro">futures: ${Object.values(s.futs).map(f=>esc(f.key)+' '+(f.ready?'ready':'pending')).join(', ')}</div>`:''}</div>`+
+   `<div class="card"><h4>Active lookups <code>slow_lookup</code></h4>${lks.length?lks.map(l=>{const p=Math.max(0,Math.min(100,100*(s.now-l.start)/(l.due-l.start)));return `<div class="lk ${l.dup?'dup':''}"><span class="own ${l.tid}">${l.tid}</span> "${esc(l.key)}" t=${l.start}→${l.due} ${s.now>=l.due?'(complete, not yet picked up)':''}${l.dup?' <b>DUPLICATE</b>':''}<div class="pb"><i style="width:${p}%"></i></div></div>`}).join(''):'<span class="ro">none running</span>'}</div>`;
+}
+function renderTimeline(){
+  const n=S.choices.length,ev=R.events,st=R.states;
+  if(!n){$('#tl').innerHTML='<div class="ro" style="padding:6px">No events yet. Step a thread, press Play, or choose a schedule and press End.</div>';return}
+  const short=e=>{const m={lock:'lock',get:e.flags.includes('hit')?'get ✓':'get ✗',lstart:'lookup ▶',lend:'◀ lookup',put:'put',check:e.flags.includes('hit')?'check ✓':'check ✗',store:'store',ret:'return',decide:e.flags.includes('hit')?'hit':e.flags.includes('join')?'join':'lead',wait:'wait ✓',publish:'publish',setv:'set_value',clock:'⏱'};return m[e.k]};
+  let th='<tr><th class="rh">event</th>',rows={A:'<tr><th class="rh own A">A</th>',B:'<tr><th class="rh own B">B</th>',C:'<tr><th class="rh">clock</th>',M:'<tr><th class="rh"><code>mu_</code></th>',L:'<tr><th class="rh">lookups</th>',TT:'<tr><th class="rh">t</th>'};
+  ev.forEach((e,i)=>{
+    const k=i+1,sel=k===S.cursor?' sel':'',fut=k>S.cursor?' fut':'';
+    th+=`<th class="${sel}${fut}">${k}</th>`;
+    for(const r of ['A','B']){
+      if(e.actor===r)rows[r]+=`<td class="${sel}${fut}"><button class="ev ${r} ${e.dup?'dup':''}" data-act="goto" data-n="${k}" data-fid="ev${k}" aria-current="${k===S.cursor}" title="${esc(e.title)}">${esc(short(e))}</button></td>`;
+      else{const b=st[k].th[r].blocked;rows[r]+=`<td class="${sel}${fut}">${b?`<div class="hatch" title="${r} blocked on ${b.on==='mutex'?'mu_':'the shared lookup'} since t=${b.since}"></div>`:''}</td>`}
+    }
+    rows.C+=`<td class="${sel}${fut}">${e.actor==='T'?`<button class="ev T" data-act="goto" data-n="${k}" data-fid="ev${k}" aria-current="${k===S.cursor}" title="${esc(e.title)}">⏱ ${e.t1}</button>`:''}</td>`;
+    const o=st[k].mu.owner;rows.M+=`<td class="${sel}${fut}">${o?`<div class="ow ${o}">${o}</div>`:''}</td>`;
+    const lc=st[k].lookups.filter(l=>!l.consumed).length;rows.L+=`<td class="${sel}${fut}"><div class="nl ${lc>1?'two':''}">${lc?lc+' running':''}</div></td>`;
+    rows.TT+=`<td class="${sel}${fut}"><div class="nl">${e.t1}</div></td>`;
+  });
+  $('#tl').innerHTML=`<table aria-label="Event timeline"><thead>${th}</tr></thead><tbody>${rows.A}</tr>${rows.B}</tr>${rows.C}</tr>${rows.M}</tr>${rows.L}</tr>${rows.TT}</tr></tbody></table>`;
+  const c=$('#tl');const sel=$('#tl th.sel');if(sel&&(sel.offsetLeft<c.scrollLeft+60||sel.offsetLeft>c.scrollLeft+c.clientWidth-60))c.scrollLeft=Math.max(0,sel.offsetLeft-c.clientWidth/2);
+}
+const TABS=[['event','Event'],['compare','Compare'],['limits','Model and limits']];
+function renderSide(){
+  $('#sideTabs').innerHTML=TABS.map(([k,l])=>`<button role="tab" aria-selected="${S.tab===k}" aria-pressed="${S.tab===k}" data-act="tab" data-v="${k}">${l}</button>`).join('');
+  $('#side').innerHTML=S.tab==='event'?sideEvent():S.tab==='compare'?sideCompare():sideLimits();
+}
+function snippet(ids){
+  const v=V();const nums=ids.map(i=>v.lineNo[i]).filter(Boolean).sort((a,b)=>a-b);
+  return `<div class="snip mono">`+nums.map(n=>`<div class="ln" style="grid-template-columns:30px 1fr"><span class="no">${n}</span><code>${esc(v.src[n-1].t)}</code></div>`).join('')+`</div>`;
+}
+function sideEvent(){
+  const ev=curEv(),s=cur(),prev=R.states[S.cursor-1]||null;
+  if(!ev){
+    return `<h3 style="font-size:14px">Initial state, t=0</h3><p>${esc(E.WORKLOADS[S.workload].desc)}</p>
+    <div class="ex"><span class="chip sim">Simulated</span> No event has run. <code>mu_</code> is free, nothing is in flight, and both threads are at the start of <code>resolve()</code>.</div>
+    <p class="ro">Press Step, or click <b>Step A</b> / <b>Step B</b> to choose which thread runs first. The schedule “${esc(E.SCHEDULES[S.sched].name)}” applies when you press Step or Play: <i>${esc(E.SCHEDULES[S.sched].note)}</i></p>`;
+  }
+  const rows=[];
+  if(ev.actor!=='T'||true){
+    const o0=prev.mu.owner,o1=s.mu.owner;if(o0!==o1)rows.push(['mu_',(o0||'free')+' → '+(o1||'free')]);
+    const c0=Object.keys(prev.cache).length,c1=Object.keys(s.cache).length;if(c1!==c0||JSON.stringify(prev.cache)!==JSON.stringify(s.cache))rows.push(['cache',c0+' → '+c1+' entr'+(c1===1?'y':'ies')]);
+    const i0=Object.keys(prev.inflight).length,i1=Object.keys(s.inflight).length;if(i0!==i1)rows.push(['inflight_',i0+' → '+i1]);
+    if(s.lookups.length!==prev.lookups.length)rows.push(['lookups started',prev.lookups.length+' → '+s.lookups.length]);
+    if(s.now!==prev.now)rows.push(['sim time','t='+prev.now+' → t='+s.now]);
+  }
+  const concl=ev.concl.map(c=>`<div class="ex mod"><span class="chip mod">Model</span> ${esc(c)}</div>`).join('');
+  const wk=ev.wakes.map(w=>`<div class="ex"><span class="chip sim">Simulated</span> ${w.t} becomes runnable (was blocked on ${w.on==='mutex'?'<code>mu_</code>':'the shared lookup'} since t=${s.now-w.waited}; waited ${w.waited}).</div>`).join('');
+  const bk=ev.blocks.map(b=>`<div class="ex"><span class="chip sim">Simulated</span> ${b.t} is now blocked on ${b.on==='mutex'?'<code>mu_</code> (held by '+b.by+')':'the shared lookup (leader '+b.by+')'}.</div>`).join('');
+  return `<h3 style="font-size:14px">Event ${S.cursor} of ${S.choices.length} · ${ev.actor==='T'?'Clock':'Thread <span class="own '+ev.actor+'">'+ev.actor+'</span>'}</h3>
+    <p style="margin:4px 0"><b>${esc(ev.title)}</b> <span class="ro">t=${ev.t0===ev.t1?ev.t1:ev.t0+' → '+ev.t1}</span></p>
+    ${ev.lines.length?`<div><span class="chip sup">Supplied</span> <span class="ro">${esc(V().file)}, ${lineRange(ev.lines)}</span></div>${snippet(ev.lines)}`:`<div class="ro"><span class="chip sup">Supplied</span> no source line: time passes between instructions.</div>`}
+    <div class="ex"><span class="chip sim">Simulated</span> ${esc(ev.text)}</div>
+    ${concl}${bk}${wk}
+    ${rows.length?`<dl class="kv">${rows.map(r=>`<dt>${esc(r[0])}</dt><dd>${esc(r[1])}</dd>`).join('')}</dl>`:''}
+    <p class="ro">Event ${S.cursor} is the result of replaying choices <code>${esc(S.choices.slice(0,S.cursor).join(' '))}</code> from the initial state; nothing here is stored except that list.</p>`;
+}
+function runFor(v,w,sch){const ch=E.autoRun(v,w,sch,[]);const rp=E.replay(v,w,ch);return E.metrics(rp.states[rp.states.length-1])}
+function cmpTable(w){
+  const W=E.WORKLOADS[w],sch=E.SCHEDULES[S.sched];
+  let h=`<table class="cmp"><thead><tr><th>${esc(W.name)}</th><th title="lookups started">lookups</th><th title="simulated units until both returned">ends at</th><th>A waited</th><th>B waited</th><th title="share of ALL legal schedules of the model that do a duplicate lookup">dup. in all schedules</th></tr></thead><tbody>`;
+  for(const v of Object.values(E.VARIANTS)){
+    const m=runFor(v.id,w,S.sched),ag=E.aggregate(E.init(v.id,w));
+    const bad=ag.dupPaths>0;
+    h+=`<tr class="${v.id===S.variant&&w===S.workload?'cur':''}"><td><button data-act="loadrun" data-v="${v.id}" data-w="${w}" title="Load this run: ${esc(v.name)}" style="padding:0 6px;white-space:nowrap">${esc(v.short)}</button></td>
+      <td class="${m.dups?'bad':''}">${m.lookups}</td><td>${m.makespan}</td><td>${m.waitA}</td><td class="${W.keys.A!==W.keys.B&&m.waitB>=50?'bad':''}" title="${W.keys.A!==W.keys.B?'B asked for a different key than A':'B asked for the same key, so some waiting is inherent'}">${m.waitB}</td>
+      <td class="${bad?'bad':'good'}">${ag.dupPaths} / ${ag.paths}${bad?'':' ✓'}</td></tr>`;
+  }
+  return h+'</tbody></table>';
+}
+function sideCompare(){
+  const W=E.WORKLOADS[S.workload],sch=E.SCHEDULES[S.sched];
+  const others=Object.keys(E.WORKLOADS).filter(w=>w!==S.workload);
+  const sw=others.map(w=>`<details><summary>${esc(E.WORKLOADS[w].name)}</summary><p class="ro">${esc(E.WORKLOADS[w].desc)}</p>${cmpTable(w)}</details>`).join('');
+  return `<h3 style="font-size:14px">Same workload, three implementations</h3>
+   <div class="ex asm"><span class="chip asm">Assumption</span> <b>Workload:</b> ${esc(W.desc)} Threads: A and B, both arriving at t=0. <b>Costs (simulated units):</b> ${Object.entries(E.COSTS).map(([k,v])=>esc(k)+' = '+v).join('; ')}. <b>Schedule for the “ends at” and “waited” columns:</b> ${esc(sch.name)}.</div>
+   ${cmpTable(S.workload)}
+   <div class="ex mod"><span class="chip mod">Model</span> The last column explores <b>every</b> legal interleaving of this model (including the clock jumping at any point) and counts how many do a duplicate lookup. It is exhaustive for the model, and says nothing about how likely a schedule is on real hardware.</div>
+   <p class="ro">Waiting counts only time spent blocked on <code>mu_</code> or on a shared lookup. Time a thread simply was not scheduled is not waiting. Click a variant name to load that run.</p>
+   ${sw}
+   <ul class="tight"><li><b>1 · Per-operation lock</b>: never blocks long, but can duplicate work.</li><li><b>2 · Coarse lock</b>: never duplicates, but an unrelated key waits behind the slow lookup.</li><li><b>3 · Per-key coalescing</b>: no duplicates here and unrelated keys proceed, at the cost of more code and the failure handling listed under Model and limits.</li></ul>`;
+}
+function sideLimits(){
+  return `<h3 style="font-size:14px">What is simulated, what is not</h3>
+  <div class="ex"><span class="chip sup">Supplied</span> The C++ is hand-written for this demo and shown verbatim. The demo does not parse or run it. (README: the three variants were compiled and checked with a separate gated harness; that is outside this page.)</div>
+  <div class="ex"><span class="chip sim">Simulated</span> Every event comes from a small state machine hand-written to mirror those listings: two thread programs, one mutex, one map, an in-flight table, lookups as timers. Rewind replays the recorded choices from the initial state.</div>
+  <div class="ex mod"><span class="chip mod">Model</span> Conclusions such as “no duplicate is possible” hold for the model: they are checked over every legal schedule of it, not over a real run. They are only as good as the model matches the code.</div>
+  <div class="ex asm"><span class="chip asm">Assumption</span> <b>Time</b> is in made-up units: cache operations cost 1, lookups 100 or 20, lock operations 0. One global clock; threads never run in parallel except that lookups overlap. No memory model, cache coherence, scheduler fairness or lock convoying. <b>Not a benchmark.</b></div>
+  <h4 style="margin:10px 0 2px">Omitted production concerns</h4>
+  <ul class="tight">
+   <li><b>Error propagation (variant 3).</b> If <code>slow_lookup</code> throws, <code>promise</code> is destroyed without a value, so followers get <code>std::future_error</code> (<code>broken_promise</code>), and the <code>inflight_</code> entry is never erased, so later callers of that key join the broken future too. Needs <code>try/catch</code>, <code>set_exception</code> and erasing the entry (checked in the README harness).</li>
+   <li><b>Cleanup of in-flight requests:</b> timeouts, cancellation, shutdown while a leader is still running.</li>
+   <li><b>Cache policy:</b> eviction, TTL, negative caching, and a stampede when many entries expire together.</li>
+   <li><b>Scale:</b> only two threads here; one mutex is still a contention point in variant 3.</li>
+   <li><b>Variant 2</b> also blocks <i>cache hits</i> for other keys, not only misses (workload “Unrelated cached key”).</li>
+  </ul>
+  <p><b>Coalescing does not solve every concurrency problem.</b> It removes duplicate lookups for a key while a lookup is in flight; it adds failure modes of its own.</p>
+  <button data-act="spec">Export proposed regression test (specification)</button>`;
+}
+function renderGuide(){
+  if(S.mode!=='guided'){$('#guide').innerHTML='';return}
+  const ch=E.CHAPTERS[S.chapter],c=chCtx(ch),last=S.chapter===E.CHAPTERS.length-1;
+  $('#guide').innerHTML=`<div class="row"><div style="flex:1;min-width:280px">
+    <div class="ro">Step ${S.chapter+1} of ${E.CHAPTERS.length}</div><h2>${esc(ch.title)}</h2>
+    <div class="q">${esc(ch.q)}</div>
+    ${S.revealed?`<div class="a">${ch.a(c)}</div>`:''}
+    </div><div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+    <div style="display:flex;gap:6px"><button data-act="gprev" ${S.chapter===0&&!S.revealed?'disabled':''}>&#9664; Back</button>
+    <button class="primary" data-act="gnext" data-fid="gnext" ${last&&S.revealed?'disabled':''}>${S.revealed?(last?'End':'Next &#9654;'):(ch.free?'Show the answer':'Reveal')}</button>
+    <button data-act="explore">Explore freely</button></div>
+    <div class="dots" role="group" aria-label="Guide steps">${E.CHAPTERS.map((x,i)=>`<button data-act="gto" data-n="${i}" aria-label="Step ${i+1}: ${esc(x.title)}" ${i===S.chapter?'aria-current="step"':''} title="${esc(x.title)}"></button>`).join('')}</div></div></div>`;
+}
+function render(){
+  const fid=document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.fid;
+  renderControls();renderGuide();renderCode();renderLanes();renderTimeline();renderSide();
+  if(fid){const el=document.querySelector('[data-fid="'+fid+'"]');if(el&&el!==document.activeElement)el.focus({preventScroll:true})}
+  document.body.dataset.cursor=S.cursor;
+}
+
+/* ---------- events ---------- */
+function spec(){
+  const t=`PROPOSED TEST SPECIFICATION. Not compiled, not run.
+Derived from the simulation model. The schedules below were simulated, not observed in a C++ run.
+
+Seam needed first: make slow_lookup injectable, e.g.
+    Resolver(std::function<std::string(const std::string&)> lookup)
+so a test can count calls and hold a lookup open on a latch.
+
+Case 1  same key, lookup held open        (variant 1 should FAIL, variants 2 and 3 should PASS)
+  Given  a resolver whose lookup counts calls and blocks until released
+  When   thread A calls resolve("db.internal") and is inside the lookup;
+         thread B calls resolve("db.internal"); the test waits until B has either
+         entered the lookup or blocked (bounded wait, e.g. 200 ms); then releases the lookup
+  Then   lookup call count == 1; both calls return the same value
+
+Case 2  unrelated key while a slow lookup is open   (variant 2 should FAIL; 1 and 3 PASS)
+  Given  the lookup for "db.internal" blocks; the lookup for "cdn.internal" returns at once
+  When   A calls resolve("db.internal") and blocks inside the lookup;
+         B calls resolve("cdn.internal")
+  Then   B returns within a bounded time (e.g. 200 ms) while A is still blocked
+
+Case 3  failure handling                   (variant 3 as listed should FAIL; this is a gap, not a pass)
+  Given  a lookup that throws for "bad.internal" on the first call and succeeds afterwards
+  When   resolve("bad.internal") is called, throws, and is called again
+  Then   the second call retries the lookup and succeeds (no stale in-flight entry)
+
+Sketch of the gate (illustrative, uncompiled):
+    struct Gate { std::mutex m; std::condition_variable cv; bool open=false;
+                  void wait(){ std::unique_lock l(m); cv.wait(l,[&]{return open;}); }
+                  void release(){ { std::lock_guard l(m); open=true; } cv.notify_all(); } };
+Timing assertions use bounded waits, so a failure means "did not happen within the bound", not proof of a deadlock.`;
+  $('#dlgBody').innerHTML=`<h3>Proposed regression test (specification)</h3><p><span class="chip asm">Not runnable</span> A specification and sketch, not code that has been compiled or executed. The simulated schedules are not evidence from a C++ run.</p><pre>${esc(t)}</pre><button id="cp">Copy</button>`;
+  $('#dlg').showModal();$('#cp').onclick=()=>{try{navigator.clipboard.writeText(t)}catch(e){}$('#cp').textContent='Copied'};
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='step'){if(b.dataset.t==='T'||b.dataset.t==='A'||b.dataset.t==='B')tryStep(b.dataset.t,true)}
+  else if(a==='variant'){setConfig(b.dataset.v);say('Switched to '+E.VARIANTS[b.dataset.v].name+'. Reset: the same schedule and workload will replay as you step.');render()}
+  else if(a==='goto')goTo(+b.dataset.n);
+  else if(a==='tab'){S.tab=b.dataset.v;render()}
+  else if(a==='codetab'){S.codeTab=b.dataset.v;render()}
+  else if(a==='gnext')nextChapter();
+  else if(a==='gprev')prevChapter();
+  else if(a==='gto')applyChapter(+b.dataset.n,false);
+  else if(a==='explore')setMode('explore');
+  else if(a==='spec')spec();
+  else if(a==='loadsched'){S.sched=b.dataset.v;const full=E.autoRun(S.variant,S.workload,S.sched,[]);S.choices=full;recompute();S.cursor=full.length;say('Replayed the schedule “'+E.SCHEDULES[S.sched].name+'” to the end.');render()}
+  else if(a==='loadrun'){stopPlay();S.variant=b.dataset.v;S.workload=b.dataset.w;const full=E.autoRun(S.variant,S.workload,S.sched,[]);S.choices=full;recompute();S.cursor=full.length;S.tab='compare';say('Loaded '+E.VARIANTS[S.variant].name+' on '+E.WORKLOADS[S.workload].name+' with schedule “'+E.SCHEDULES[S.sched].name+'”.');render()}
+});
+$('#bReset').onclick=reset;$('#bBack').onclick=back;$('#bPlay').onclick=play;$('#bStep').onclick=()=>{stopPlay();stepPolicy()};$('#bEnd').onclick=toEnd;
+$('#scrub').oninput=e=>goTo(+e.target.value);
+$('#wlSel').onchange=e=>{setConfig(null,e.target.value);say('Workload changed. Reset.');render()};
+$('#schSel').onchange=e=>{setConfig(null,null,e.target.value);say('Schedule changed. Reset.');render()};
+$('#startBtn').onclick=()=>{S.chapter=0;setMode('guided')};
+$('#exploreBtn').onclick=()=>setMode('explore');
+$('#modeG').onclick=()=>setMode('guided');$('#modeE').onclick=()=>setMode('explore');
+$('#helpBtn').onclick=()=>{$('#dlgBody').innerHTML=`<h3>Keyboard</h3><dl class="kv"><dt>Space</dt><dd>play / pause</dd><dt>→ / ←</dt><dd>step with the schedule / step back</dd><dt>A, B</dt><dd>run thread A or B next (rejected, with the reason, if it cannot run)</dd><dt>T</dt><dd>advance the clock to the next lookup completion</dd><dt>R</dt><dd>reset</dd><dt>Home / End</dt><dd>first event / run to the end</dd><dt>N / P</dt><dd>next / previous guided step</dd><dt>Tab, Enter</dt><dd>every control and every timeline event is a focusable button</dd></dl>`;$('#dlg').showModal()};
+let theme=0;const THEMES=['auto','light','dark'];
+$('#themeBtn').onclick=()=>{theme=(theme+1)%3;const r=document.documentElement;if(theme===0)r.removeAttribute('data-theme');else r.setAttribute('data-theme',THEMES[theme]);$('#themeBtn').textContent='Theme: '+THEMES[theme]};
+$('#motionBtn').onclick=()=>{const on=document.body.classList.toggle('nomotion');$('#motionBtn').setAttribute('aria-pressed',on)};
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey||e.metaKey||e.altKey||document.body.classList.contains('intro'))return;
+  const t=e.target,tag=t.tagName;if(tag==='SELECT'||tag==='TEXTAREA'||(tag==='INPUT'&&t.type!=='range')||$('#dlg').open)return;
+  const k=e.key;let used=true;
+  if(k===' '&&tag!=='BUTTON')play();
+  else if(k==='ArrowRight'&&tag!=='INPUT'){stopPlay();stepPolicy()}
+  else if(k==='ArrowLeft'&&tag!=='INPUT')back();
+  else if(k==='a'||k==='A')tryStep('A');
+  else if(k==='b'||k==='B')tryStep('B');
+  else if(k==='t'||k==='T')tryStep('T');
+  else if(k==='r'||k==='R')reset();
+  else if(k==='Home'&&tag!=='INPUT')goTo(0);
+  else if(k==='End'&&tag!=='INPUT')toEnd();
+  else if((k==='n'||k==='N')&&S.mode==='guided')nextChapter();
+  else if((k==='p'||k==='P')&&S.mode==='guided')prevChapter();
+  else used=false;
+  if(used)e.preventDefault();
+});
+if(matchMedia('(prefers-reduced-motion: reduce)').matches)$('#motionBtn').setAttribute('aria-pressed',true);
+
+/* ---------- self test (only with ?selftest): drives the real DOM and compares it with the engine ---------- */
+window.__app={S,render,tryStep,stepPolicy,back,reset,toEnd,goTo,setMode,applyChapter,setConfig,nextChapter,prevChapter,reveal,get R(){return R},cur,curEv,recompute};
+setConfig();recompute();render();
+{const q=new URLSearchParams(location.search);   // deep links: ?step=4&reveal=1 opens that guide step; ?explore=1 skips the intro
+  if(q.has('step')){setMode('guided');applyChapter(+q.get('step')-1,q.has('reveal'))}else if(q.has('explore'))setMode('explore')}
+if(location.search.includes('selftest'))import_selftest();
+function import_selftest(){
+  const out=[];let fail=0;const ok=(c,m)=>{out.push((c?'PASS ':'FAIL ')+m);if(!c)fail++};
+  const txt=sel=>$(sel).textContent;
+  const consistent=(label)=>{
+    const s=cur(),m=E.metrics(s),ev=curEv();
+    // rebuild from scratch and compare with what is on screen
+    const fresh=E.replay(S.variant,S.workload,S.choices.slice(0,S.cursor)).states.pop();
+    ok(JSON.stringify(fresh)===JSON.stringify(s),label+': state equals a fresh replay of the first '+S.cursor+' choices');
+    ok(txt('#counters').includes('lookups '+m.lookups),label+': lookups counter shows '+m.lookups);
+    ok(txt('#counters').includes('t='+s.now),label+': sim time shows t='+s.now);
+    ok(txt('#res').includes(s.mu.owner?'held by '+s.mu.owner:'free'),label+': mutex card agrees with state ('+(s.mu.owner||'free')+')');
+    for(const k of Object.keys(s.cache))ok(txt('#res').includes(k),label+': cache card lists '+k);
+    const hl=$$('#code .ln[class*=hl]').length;ok(hl===(ev?ev.lines.length:0),label+': highlighted code lines ('+hl+') equal event lines ('+(ev?ev.lines.length:0)+')');
+    ok(+$('#scrub').value===S.cursor,label+': scrubber at '+S.cursor);
+    for(const t of E.THREADS){const st=E.status(s,t);ok(txt('#lane'+t).includes(st.label),label+': lane '+t+' status "'+st.label+'"')}
+  };
+  setMode('explore');
+  // 1 duplicate scenario in variant 1, stepping with the schedule
+  setConfig('perop','same','dup');render();consistent('v1 initial');
+  for(let i=0;i<4;i++)stepPolicy();consistent('v1 after 4 steps');
+  ok(E.metrics(cur()).lookups===0,'v1: both missed, no lookup started yet');
+  stepPolicy();stepPolicy();consistent('v1 after 6 steps');
+  ok(E.metrics(cur()).dups===1&&txt('#counters').includes('duplicate 1'),'v1: duplicate shown in counters after both lookups started');
+  ok(!!$('#haz .haz.bad'),'v1: hazard banner is red');
+  ok($$('#res .lk.dup').length===1,'v1: one active lookup flagged DUPLICATE');
+  toEnd();consistent('v1 end');ok(E.metrics(cur()).lookups===2,'v1 end: 2 lookups');
+  // rewind and compare to the incremental state
+  const endState=JSON.stringify(cur());
+  for(let i=0;i<5;i++)back();consistent('v1 rewound 5');
+  goTo(S.choices.length);ok(JSON.stringify(cur())===endState,'v1: rewind then fast-forward restores the same end state');
+  // scrubbing
+  $('#scrub').value=3;$('#scrub').dispatchEvent(new Event('input'));consistent('v1 scrub to 3');
+  // clicking an event
+  const chip=$('#tl button[data-n="2"]');chip.click();ok(S.cursor===2,'click on event 2 moves the cursor');
+  ok(txt('#side').includes('Event 2 of'),'inspector shows event 2');
+  // reject impossible transition
+  setConfig('coarse','same','dup');render();tryStep('A');ok(tryStep('B')===false,'v2: B cannot lock while A holds mu_');
+  ok($('#msg').classList.contains('rej')&&txt('#msg').includes('mu_ is held by A'),'v2: rejection message explains who holds mu_');
+  ok(txt('#laneB').includes('BLOCKED on mu_'),'v2: lane B shows BLOCKED');
+  ok(S.choices.length===1,'v2: rejected step did not add an event');
+  // branching
+  setConfig('perop','same','dup');tryStep('A');tryStep('A');back();back();tryStep('B');ok(S.choices.join('')==='B','branching discards the old future');
+  // switching variants resets and replays consistently
+  const results={};
+  for(const v of ['perop','coarse','coalesce']){setConfig(v,'same','dup');toEnd();consistent(v+' same/dup end');results[v]=E.metrics(cur())}
+  ok(results.perop.lookups===2&&results.coarse.lookups===1&&results.coalesce.lookups===1,'dup schedule lookups: 2 / 1 / 1');
+  setConfig('coarse','diff','dup');toEnd();ok(E.metrics(cur()).waitB>=100,'coarse/diff: B waited >=100 behind unrelated key');
+  setConfig('coalesce','diff','dup');toEnd();ok(E.metrics(cur()).waitB<5,'coalesce/diff: B waited <5');
+  // all guided chapters render and agree with the engine
+  setMode('guided');
+  E.CHAPTERS.forEach((ch,i)=>{applyChapter(i,false);const before=S.cursor;ok(txt('#guide').includes(ch.title),'chapter '+(i+1)+' "'+ch.title+'" renders');consistent('chapter '+(i+1)+' start');
+    nextChapter();let g=0;
+    // reveal animates; jump to the end of the animation synchronously
+    stopPlay();const c=E.CHAPTERS[i];S.cursor=ch.free?S.cursor:(ch.to==='end'?S.choices.length:ch.to);render();
+    ok(S.revealed,'chapter '+(i+1)+' revealed');consistent('chapter '+(i+1)+' revealed');
+    ok(txt('#guide .a').length>20,'chapter '+(i+1)+' answer text present')});
+  // chapter numbers quoted in the text equal the metrics
+  applyChapter(7,true);{const m=E.metrics(cur());ok(txt('#guide .a').includes('<b>'.length?String(m.waitMutex.B+m.waitFuture.B):''),'coarse-diff answer quotes B wait '+(m.waitMutex.B+m.waitFuture.B))}
+  // keyboard operation, focus retention, reduced motion
+  setMode('explore');setConfig('perop','same','dup');render();
+  const sb=$('[data-fid="stepA"]');sb.focus();sb.click();
+  ok(document.activeElement&&document.activeElement.dataset.fid==='stepA','focus stays on the Step A button after it is used');
+  ok(S.choices.join('')==='A','Step A button recorded event A');
+  const key=(k)=>document.dispatchEvent(new KeyboardEvent('keydown',{key:k,bubbles:true,cancelable:true}));
+  key('b');ok(S.choices.join('')==='A'&&$('#msg').classList.contains('rej'),'key B is rejected while A holds mu_, with a message');
+  key('ArrowRight');ok(S.cursor===2,'ArrowRight steps with the schedule');
+  key('ArrowLeft');ok(S.cursor===1,'ArrowLeft steps back');
+  key('r');ok(S.cursor===0&&S.choices.length===0,'R resets');
+  key('a');key('a');key('t');ok(S.choices.join('')==='AA'&&$('#msg').classList.contains('rej'),'key T is rejected when no lookup is in flight');
+  ok($$('button').every(b=>b.textContent.trim()||b.getAttribute('aria-label')),'every button has an accessible name');
+  ok($$('#tl button.ev').length===S.choices.length||$$('#tl button.ev').length>0,'timeline events are buttons (keyboard focusable)');
+  $('#motionBtn').click();ok(document.body.classList.contains('nomotion'),'reduce-motion toggle applies');
+  reset();$('#bPlay').click();ok(S.timer===null&&E.allDone(cur()),'with reduced motion, Play runs to the end without a timer');
+  $('#motionBtn').click();
+  document.title='SELFTEST '+(fail?'FAIL':'PASS');
+  const pre=document.createElement('pre');pre.id='selftest';pre.textContent=out.join('\n')+'\n'+(fail?fail+' FAILED':'ALL PASSED');document.body.appendChild(pre);
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+ "sources": {"v1": "variant1.cpp", "v2": "variant2.cpp", "v3": "variant3.cpp"},
+ "claims": {
+  "M1": {"label": "verified", "text": "`get` takes `mu_` with a `lock_guard` before it reads `map_`.", "ev": [["v1", 12, 14]]},
+  "M2": {"label": "verified", "text": "`resolve` calls `slow_lookup` between `cache_.get` and `cache_.put`, and holds no lock there.", "ev": [["v1", 29, 32]]},
+  "M3": {"label": "inferred", "text": "Two threads can both miss in `get` before either calls `put`, so both call `slow_lookup`.", "ev": [["v1", 12, 17], ["v1", 29, 32]], "deps": ["M1", "M2"],
+         "why": "get() releases mu_ at its closing brace before resolve() reaches slow_lookup, so nothing orders the two threads' checks against each other's stores."},
+  "M4": {"label": "verified", "text": "In the coarse variant `slow_lookup` is called while the `lock_guard` on `mu_` is still alive.", "ev": [["v2", 13, 16]]},
+  "M5": {"label": "inferred", "text": "A caller of a different key also waits for `mu_` during that lookup.", "ev": [["v2", 13, 16]], "deps": ["M4"], "why": "mu_ guards the whole map, not one key."},
+  "M6": {"label": "verified", "text": "A caller that finds an `inflight_` entry copies its future and waits in `future.get` outside the lock.", "ev": [["v3", 20, 21], ["v3", 28, 28]]},
+  "M7": {"label": "assumed", "text": "A lookup of 100 time units and a cache operation of 1 are illustrative, not measured."},
+  "M8": {"label": "unverified", "text": "Behaviour when `slow_lookup` throws is not in the simulation; see the harness for a real run."}
+ }
+}

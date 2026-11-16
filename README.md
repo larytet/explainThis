@@ -75,3 +75,18 @@ retry loop as a flow diagram.
 ![Go edition, zoom view](diff-viz/docs/img/go-zoom.jpg)
 
 ![Go edition, Lead me](diff-viz/docs/img/go-lead-me.jpg)
+
+## IDSD: intent-driven development
+
+`.claude/skills/idsd/SKILL.md` is a skill for Intent-Driven Software Development (the ICE method: Intent, Context, Expectations),
+after Kapil Viren Ahuja's "The Method That Replaces Spec-Driven Development". It splits the single spec into three crafts: the
+human owns the intent and the expectations, and the harness owns the context.
+
+1. Takes one outcome and drafts its intent in five parts: wanted, constraints, failure scenarios, success scenarios, connections.
+2. Hunts for every place an agent would still have to guess, and asks you instead of filling the hole.
+3. Writes short expectations (done when, failed when, limits) in your terms and gets your OK.
+4. Runs the build loop in rounds, validating against the expectations and stopping for any decision that belongs to you.
+
+```
+/idsd add a red shoe under $90 to the shop
+```

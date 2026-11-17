@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLM Visual Guide — interactive mock</title>
+<style>
+:root{--bg:#f7f7f4;--panel:#fff;--ink:#1d2127;--mut:#656d78;--line:#dcdfe3;--acc:#3b5bdb;--acc2:#e8590c;--ok:#2f9e44;--warn:#c92a2a;--chip:#eef1ff;--heat:59,91,219}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171b;--panel:#1d2127;--ink:#e6e8eb;--mut:#9aa3ad;--line:#2f353d;--acc:#7c9cff;--acc2:#ff922b;--ok:#69db7c;--warn:#ff8787;--chip:#252b3a;--heat:124,156,255}}
+:root[data-theme=dark]{--bg:#14171b;--panel:#1d2127;--ink:#e6e8eb;--mut:#9aa3ad;--line:#2f353d;--acc:#7c9cff;--acc2:#ff922b;--ok:#69db7c;--warn:#ff8787;--chip:#252b3a;--heat:124,156,255}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;padding:8px 16px;flex-wrap:wrap}
+header b{font-size:16px}
+nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+nav a{color:var(--mut);text-decoration:none;padding:3px 9px;border-radius:99px;font-size:13px;border:1px solid transparent}
+nav a:hover,nav a.on{color:var(--acc);border-color:var(--line);background:var(--panel)}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{max-width:980px;margin:0 auto;padding:16px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0;scroll-margin-top:60px}
+h1{font-size:26px;margin:18px 0 4px}h2{font-size:20px;margin:0 0 2px}
+.sub{color:var(--mut);margin:0 0 12px}
+.src{font-size:12.5px;color:var(--mut);margin-bottom:10px}
+.src a{color:var(--acc)}
+.tag{display:inline-block;font-size:11px;border:1px solid var(--line);border-radius:99px;padding:0 7px;color:var(--mut);margin-left:6px;vertical-align:middle}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0}
+label{font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center}
+input[type=range]{accent-color:var(--acc)}
+.tok{display:inline-block;padding:2px 7px;margin:2px;border-radius:6px;background:var(--chip);border:1px solid var(--line);cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.tok.sel{outline:2px solid var(--acc2)}
+.bars .b{display:grid;grid-template-columns:110px 1fr 56px;gap:8px;align-items:center;font-size:13px;margin:3px 0}
+.bars .b i{display:block;height:14px;border-radius:3px;background:var(--acc);transition:width .25s}
+.bars .b span:last-child{text-align:right;color:var(--mut);font-variant-numeric:tabular-nums}
+canvas{border:1px solid var(--line);border-radius:8px;max-width:100%;background:var(--bg)}
+.note{font-size:13px;color:var(--mut);border-left:3px solid var(--line);padding-left:10px;margin:10px 0 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+.card{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.card a{color:var(--acc);font-weight:600;text-decoration:none}
+.card p{margin:4px 0 0;font-size:13px;color:var(--mut)}
+table.hm{border-collapse:collapse;font-size:11px;font-family:ui-monospace,monospace}
+table.hm td{width:30px;height:26px;text-align:center;border:1px solid var(--bg)}
+table.hm th{font-weight:400;color:var(--mut);padding:0 4px;white-space:nowrap}
+.cells{display:flex;gap:3px;flex-wrap:wrap}
+.cell{width:22px;height:22px;border-radius:4px;border:1px solid var(--line);font-size:10px;display:grid;place-items:center}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--chip);font-size:12px;margin:2px}
+.warn{color:var(--warn)}.ok{color:var(--ok)}
+footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <b>LLM Visual Guide</b>
+  <nav id="nav"></nav>
+  <button id="theme" title="Toggle theme">◐</button>
+</header>
+<main>
+<h1>How an LLM works — ten visual resources, one playable page</h1>
+<p class="sub">Each section below is a tiny, deterministic toy inspired by one of the resources you listed. They are simplified models built from hand-set numbers, not real model weights — use them to build intuition, then open the real resource (link in each section) for the full picture.</p>
+
+<section id="resources">
+  <h2>The ten resources</h2>
+  <p class="sub">Short links were resolved in a browser; the destinations are shown below.</p>
+  <div class="grid" id="resgrid"></div>
+</section>
+
+<section id="tokens">
+  <h2>1 · Next-token prediction <span class="tag">Transformer Explainer · 3Blue1Brown</span></h2>
+  <div class="src">Real thing: <a href="https://poloclub.github.io/transformer-explainer/" target="_blank" rel="noopener">poloclub.github.io/transformer-explainer</a> runs a live GPT-2 in your browser.</div>
+  <p>A model turns the text so far into a score (logit) for every token in its vocabulary. Softmax makes probabilities; <b>temperature</b> and <b>top-k</b> shape how the next token is picked.</p>
+  <div>Prompt: <span class="tok">The</span><span class="tok">cat</span><span class="tok">sat</span><span class="tok">on</span><span class="tok">the</span><b id="gen"></b><span class="tok" style="opacity:.5">▁?</span></div>
+  <div class="row">
+    <label>Temperature <input id="temp" type="range" min="0.1" max="3" step="0.05" value="1"><b id="tempv">1.00</b></label>
+    <label>Top-k <input id="topk" type="range" min="1" max="10" step="1" value="10"><b id="topkv">10</b></label>
+    <button class="pri" id="sample">Sample next token</button>
+    <button id="reset1">Reset</button>
+  </div>
+  <div class="bars" id="tokbars"></div>
+  <div class="note">Low temperature → the top token dominates (near-greedy). High temperature → the distribution flattens. Top-k zeroes out everything below rank k, then renormalises.</div>
+</section>
+
+<section id="attention">
+  <h2>2 · Self-attention: Q, K and V <span class="tag">Illustrated Transformer · LLM Visualization</span></h2>
+  <div class="src">Real things: <a href="https://jalammar.github.io/illustrated-transformer/" target="_blank" rel="noopener">The Illustrated Transformer</a> · <a href="https://bbycroft.net/llm" target="_blank" rel="noopener">bbycroft.net/llm</a> (3D walk through nano-GPT).</div>
+  <p>Each token makes a <b>query</b> ("what am I looking for?"), a <b>key</b> ("what do I contain?") and a <b>value</b> ("what I hand over"). Weights = softmax(Q·K / √d), masked so a token only sees the past. Click a token to see where it looks. Three hand-made "heads" show that heads specialise.</p>
+  <div class="row">
+    <label>Head <select id="head"><option value="0">Head A — previous token</option><option value="1" selected>Head B — pronoun → referent</option><option value="2">Head C — local window</option></select></label>
+    <label><input type="checkbox" id="causal" checked> Causal mask</label>
+  </div>
+  <div id="atok"></div>
+  <div id="amat" style="overflow:auto;margin-top:8px"></div>
+  <div class="note" id="anote"></div>
+</section>
+
+<section id="variants">
+  <h2>3 · Attention variants and the KV cache <span class="tag">Visual Guide to Attention Variants</span></h2>
+  <div class="src">Real thing: <a href="https://magazine.sebastianraschka.com/p/visual-attention-variants" target="_blank" rel="noopener">Raschka — A Visual Guide to Attention Variants in Modern LLMs</a> (MHA, GQA, MLA, sparse and hybrid).</div>
+  <p>During generation every past token's keys and values are cached. Variants differ mainly in <b>how much they cache per token</b>. Set a model shape and compare (bytes = 2 for fp16/bf16).</p>
+  <div class="row">
+    <label>Layers <input id="vL" type="range" min="8" max="96" value="32"><b id="vLv"></b></label>
+    <label>Query heads <input id="vH" type="range" min="8" max="128" step="8" value="32"><b id="vHv"></b></label>
+    <label>Head dim <select id="vD"><option>64</option><option selected>128</option><option>256</option></select></label>
+  </div>
+  <div class="row">
+    <label>GQA groups <select id="vG"><option>1</option><option>2</option><option selected>8</option><option>16</option></select></label>
+    <label>MLA latent dim <input id="vC" type="range" min="64" max="1024" step="64" value="512"><b id="vCv"></b></label>
+    <label>Sliding window <input id="vW" type="range" min="512" max="16384" step="512" value="4096"><b id="vWv"></b></label>
+    <label>Context <select id="vT"><option value="8192">8K</option><option value="32768" selected>32K</option><option value="131072">128K</option><option value="1048576">1M</option></select></label>
+  </div>
+  <div class="bars" id="vbars"></div>
+  <div class="note">MHA: 2·L·H·d per token. MQA: one shared K/V head. GQA: G shared groups. MLA: caches one compressed latent (plus a small RoPE part, 64 here) per layer. Sliding window: full MHA cost but capped at the window. Simplified formulas — real models mix layer types (the "hybrid" part of the article).</div>
+</section>
+
+<section id="moe">
+  <h2>4 · Mixture of Experts routing <span class="tag">Visual Guide to MoE</span></h2>
+  <div class="src">Real thing: <a href="https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts" target="_blank" rel="noopener">Maarten Grootendorst — A Visual Guide to Mixture of Experts</a>.</div>
+  <p>A router scores 8 experts for each token and sends it to the top-k. Left alone, a router tends to favour a few "popular" experts and the rest sit idle. A <b>load-balancing</b> term nudges it towards an even spread.</p>
+  <div class="row">
+    <label>Top-k experts <input id="mK" type="range" min="1" max="4" value="2"><b id="mKv"></b></label>
+    <label>Load-balancing <input id="mB" type="range" min="0" max="100" value="0"><b id="mBv"></b>%</label>
+    <button id="mNew">New batch of tokens</button>
+  </div>
+  <div class="bars" id="mbars"></div>
+  <div id="mstats" class="note"></div>
+</section>
+
+<section id="inference">
+  <h2>5 · Inference: prefill, decode and the KV cache <span class="tag">LLM Inference Handbook</span></h2>
+  <div class="src">Real thing: <a href="https://handbook.modular.com/llm-inference-basics/what-is-llm-inference/" target="_blank" rel="noopener">Modular — LLM Inference Handbook</a>.</div>
+  <p>Inference = <b>prefill</b> (process the whole prompt in parallel) then a <b>decode loop</b> (one new token per step). Without a KV cache, every step re-processes everything so far.</p>
+  <div class="row">
+    <label>Prompt tokens <input id="iP" type="range" min="4" max="64" value="24"><b id="iPv"></b></label>
+    <label>Output tokens <input id="iO" type="range" min="4" max="64" value="16"><b id="iOv"></b></label>
+    <label><input type="checkbox" id="iC" checked> KV cache</label>
+    <button class="pri" id="iStep">Step ▶</button><button id="iRun">Run all</button><button id="iReset">Reset</button>
+  </div>
+  <div class="cells" id="icells"></div>
+  <div class="note" id="istat"></div>
+  <div class="note">Legend: blue = tokens computed this step, grey = tokens served from cache, orange outline = newest token. Prefill is compute-bound (big parallel matmul); decode is memory-bandwidth-bound (re-reads weights + cache each token). Cache saves compute but costs memory — see section 3.</div>
+</section>
+
+<section id="playground">
+  <h2>6 · Train a tiny neural network <span class="tag">TensorFlow Playground · 3Blue1Brown</span></h2>
+  <div class="src">Real things: <a href="https://playground.tensorflow.org/" target="_blank" rel="noopener">playground.tensorflow.org</a> · <a href="https://www.3blue1brown.com/?topic=neural-networks" target="_blank" rel="noopener">3Blue1Brown neural networks</a>. This one is a from-scratch MLP (tanh, SGD) running in your browser.</p></div>
+  <div class="row">
+    <label>Data <select id="pData"><option value="xor">XOR</option><option value="circle">Circle</option><option value="spiral">Spiral</option></select></label>
+    <label>Hidden layers <select id="pLay"><option>1</option><option selected>2</option><option>3</option></select></label>
+    <label>Neurons <select id="pNeu"><option>2</option><option>4</option><option selected>8</option></select></label>
+    <label>Learning rate <select id="pLr"><option>0.003</option><option>0.01</option><option selected>0.03</option><option>0.1</option><option>0.3</option></select></label>
+    <button class="pri" id="pPlay">▶ Train</button><button id="pReset">Reset</button>
+  </div>
+  <canvas id="pcv" width="360" height="360"></canvas>
+  <div class="note" id="pstat"></div>
+  <div class="note">Try: 1 layer × 2 neurons on Spiral (can't fit), then 3 × 8. Try learning rate 0.3 and watch it destabilise.</div>
+</section>
+
+<section id="features">
+  <h2>7 · What do features represent? <span class="tag">Neuronpedia</span></h2>
+  <div class="src">Real thing: <a href="https://www.neuronpedia.org/" target="_blank" rel="noopener">neuronpedia.org</a> hosts real interpretability features (sparse autoencoder latents) with top-activating text, search and steering.</div>
+  <p>Interpretability researchers find <b>features</b>: directions inside the model that light up for a concept. Type text; a toy keyword lexicon stands in for the real feature detectors.</p>
+  <input id="fIn" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)" value="The Golden Gate Bridge was shrouded in fog, so I wrote a Python function to debug it.">
+  <div id="fOut" style="margin-top:10px"></div>
+  <div class="row"><label>Steer: boost feature <select id="fSt"></select></label><label>strength <input id="fStr" type="range" min="0" max="10" value="0"><b id="fStrv"></b></label></div>
+  <div class="bars" id="fbars"></div>
+  <div class="note">Steering here nudges a made-up next-word distribution towards the chosen feature's words — the same idea as real feature steering, with none of the real model.</div>
+</section>
+
+<section id="atlas">
+  <h2>8 · Embedding map <span class="tag">Embedding Atlas</span></h2>
+  <div class="src">Real thing: <a href="https://apple.github.io/embedding-atlas/" target="_blank" rel="noopener">Apple's Embedding Atlas</a> for exploring large embedding sets with clusters, search and metadata.</div>
+  <p>Embeddings place similar things near each other. Below, 48 words with hand-placed 2D positions. Hover to see nearest neighbours (cosine on the 2D vectors); search to highlight; click a point to pin it.</p>
+  <div class="row"><input id="aQ" placeholder="search word…" style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><span id="aInfo" class="note" style="margin:0"></span></div>
+  <canvas id="acv" width="900" height="460" style="width:100%"></canvas>
+</section>
+</main>
+<footer>Single file, no dependencies. Toy models for intuition — not real LLM internals. Open the linked originals for the real thing.</footer>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294967296)}
+function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}</span><span><i style="width:${Math.max(0,Math.min(100,r.v*100))}%;${r.c?'background:'+r.c:''}"></i></span><span>${fmt?fmt(r):(r.v*100).toFixed(1)+'%'}</span></div>`).join('')}
+
+/* nav + theme */
+const SECS=[['resources','Resources'],['tokens','Next token'],['attention','Attention'],['variants','KV cache'],['moe','MoE'],['inference','Inference'],['playground','Train a net'],['features','Features'],['atlas','Embeddings']];
+$('#nav').innerHTML=SECS.map(([i,t])=>`<a href="#${i}">${t}</a>`).join('');
+$('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)$$('nav a').forEach(a=>a.classList.toggle('on',a.hash==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'});
+SECS.forEach(([i])=>io.observe($('#'+i)));
+
+/* resources */
+const RES=[
+['Transformer Explainer','https://poloclub.github.io/transformer-explainer/','Live GPT-2 in the browser; step through tokens → attention → next token.','tokens'],
+['LLM Visualization','https://bbycroft.net/llm','3D walkthrough of every layer of a small GPT.','attention'],
+['3Blue1Brown','https://www.3blue1brown.com/?topic=neural-networks','Animated lessons: neural nets, backprop, transformers.','playground'],
+['The Illustrated Transformer','https://jalammar.github.io/illustrated-transformer/','Classic walkthrough of Q, K, V and multi-head attention.','attention'],
+['TensorFlow Playground','https://playground.tensorflow.org/','Train and break a small network in the browser.','playground'],
+['Visual Guide to Attention Variants','https://magazine.sebastianraschka.com/p/visual-attention-variants','MHA, GQA, MLA, sparse and hybrid attention compared.','variants'],
+['Visual Guide to Mixture of Experts','https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts','Routers, experts and load balancing in diagrams.','moe'],
+['LLM Inference Handbook','https://handbook.modular.com/llm-inference-basics/what-is-llm-inference/','Prefill, decode, batching, KV cache, serving.','inference'],
+['Neuronpedia','https://www.neuronpedia.org/','Browse and steer interpretable features inside models.','features'],
+['Embedding Atlas (Apple)','https://apple.github.io/embedding-atlas/','Interactive map of embedding clusters and metadata.','atlas']];
+$('#resgrid').innerHTML=RES.map((r,i)=>`<div class="card"><a href="${r[1]}" target="_blank" rel="noopener">${i+1}. ${r[0]}</a><p>${r[2]}</p><p><a href="#${r[3]}" style="font-weight:400">↓ try the toy version</a></p></div>`).join('');
+
+/* 1 tokens */
+const NT=[['mat',5.0],['floor',3.6],['sofa',3.4],['bed',3.0],['roof',2.6],['table',2.4],['moon',0.6],['idea',-0.5],['tax',-1.2],['quickly',-2.0]];
+let gen='';
+function drawTok(){const T=+$('#temp').value,K=+$('#topk').value;$('#tempv').textContent=T.toFixed(2);$('#topkv').textContent=K;
+  const ex=NT.map(([w,l],i)=>i<K?Math.exp(l/T):0),s=ex.reduce((a,b)=>a+b,0);
+  const rows=NT.map(([w],i)=>({l:w,v:ex[i]/s,c:i<K?null:'var(--line)'}));bar($('#tokbars'),rows);return rows}
+$('#temp').oninput=$('#topk').oninput=drawTok;
+$('#sample').onclick=()=>{const rows=drawTok();let r=Math.random(),a=0;for(const x of rows){a+=x.v;if(r<a){gen=` <span class="tok sel">${x.l}</span>`;break}}$('#gen').innerHTML=gen};
+$('#reset1').onclick=()=>{$('#gen').innerHTML='';drawTok()};drawTok();
+
+/* 2 attention */
+const WORDS='The animal didn\'t cross the street because it was too tired'.split(' ');
+const REF={7:{1:6,5:1.5}}; // 'it' -> animal (strong), street (weak)
+function scoreHead(h,i,j){
+  if(h===0)return j===i-1?4:(j===i?1:-1);
+  if(h===1){if(i===7)return j===1?5:j===5?2.5:j===i?0.5:-1; if(j===i)return 1.5; if(WORDS[j]==='The'||WORDS[j]==='the')return j===i-1?1.2:0; return j===i-1?1.5:0.2}
+  return Math.abs(i-j)<=2?3-Math.abs(i-j):-2}
+let aSel=7;
+function attnRow(i,causal,h){const sc=WORDS.map((_,j)=>causal&&j>i?-Infinity:scoreHead(h,i,j));const m=Math.max(...sc),e=sc.map(x=>Math.exp(x-m)),s=e.reduce((a,b)=>a+b,0);return e.map(x=>x/s)}
+function drawAttn(){const h=+$('#head').value,c=$('#causal').checked;
+  $('#atok').innerHTML=WORDS.map((w,i)=>`<span class="tok ${i===aSel?'sel':''}" data-i="${i}" style="${i===aSel?'':`background:rgba(var(--heat),${(attnRow(aSel,c,h)[i]*0.9).toFixed(2)})`}">${w}</span>`).join('');
+  $$('#atok .tok').forEach(t=>t.onclick=()=>{aSel=+t.dataset.i;drawAttn()});
+  let html='<table class="hm"><tr><th></th>'+WORDS.map(w=>`<th>${w.slice(0,5)}</th>`).join('')+'</tr>';
+  WORDS.forEach((w,i)=>{const r=attnRow(i,c,h);html+=`<tr><th style="text-align:right;${i===aSel?'color:var(--acc2);font-weight:700':''}">${w}</th>`+r.map(v=>`<td style="background:rgba(var(--heat),${v.toFixed(2)});color:${v>.5?'#fff':'var(--mut)'}">${v>0.005?v.toFixed(2):''}</td>`).join('')+'</tr>'});
+  $('#amat').innerHTML=html+'</table>';
+  const r=attnRow(aSel,c,h),top=r.map((v,j)=>[v,j]).sort((a,b)=>b[0]-a[0]).slice(0,2);
+  $('#anote').innerHTML=`Row "<b>${WORDS[aSel]}</b>": the output is Σ weight·V, mostly from "<b>${WORDS[top[0][1]]}</b>" (${top[0][0].toFixed(2)})${top[1]?` and "${WORDS[top[1][1]]}" (${top[1][0].toFixed(2)})`:''}. Head B resolves "it" → "animal" — the classic example from the Illustrated Transformer. Weights are hand-authored, not learned.`}
+$('#head').onchange=$('#causal').onchange=drawAttn;drawAttn();
+
+/* 3 variants */
+function fmtB(b){const u=['B','KB','MB','GB','TB'];let i=0;while(b>=1024&&i<4){b/=1024;i++}return b.toFixed(b<10?2:1)+' '+u[i]}
+function drawVar(){const L=+$('#vL').value,H=+$('#vH').value,d=+$('#vD').value,G=Math.min(+$('#vG').value,H),C=+$('#vC').value,W=+$('#vW').value,T=+$('#vT').value;
+  $('#vLv').textContent=L;$('#vHv').textContent=H;$('#vCv').textContent=C;$('#vWv').textContent=W;
+  const b=2,mha=2*L*H*d*b,rows=[['MHA',mha,'var(--warn)'],['GQA ('+G+' groups)',2*L*G*d*b,'var(--acc2)'],['MQA',2*L*d*b,'var(--acc)'],['MLA (latent '+C+')',L*(C+64)*b,'var(--ok)']];
+  const full=mha*T,out=rows.map(([n,p,c])=>({l:n,v:p*T/full,c,x:`${fmtB(p)}/tok · ${fmtB(p*T)}`}));
+  out.push({l:'MHA + window '+W,v:Math.min(T,W)*mha/full,c:'var(--mut)',x:`${fmtB(mha)}/tok · ${fmtB(Math.min(T,W)*mha)}`});
+  $('#vbars').innerHTML=out.map(r=>`<div class="b" style="grid-template-columns:150px 1fr 230px"><span>${r.l}</span><span><i style="width:${Math.max(.6,r.v*100)}%;background:${r.c}"></i></span><span>${r.x}</span></div>`).join('')+`<div class="note">Cache for one sequence of ${T.toLocaleString()} tokens. Bars are relative to full MHA.</div>`}
+$$('#variants input,#variants select').forEach(e=>e.oninput=drawVar);drawVar();
+
+/* 4 MoE */
+let mSeed=7;
+function drawMoE(){const k=+$('#mK').value,bal=+$('#mB').value/100,E=8,N=64,r=rng(mSeed);$('#mKv').textContent=k;$('#mBv').textContent=Math.round(bal*100);
+  const pop=[2.2,1.6,1.0,0.2,0,0,-0.4,-0.8],load=Array(E).fill(0),drops=0;
+  for(let t=0;t<N;t++){const sc=pop.map((p,e)=>p*(1-bal)+(r()-.5)*2.2+0.0);sc.map((v,e)=>[v,e]).sort((a,b)=>b[0]-a[0]).slice(0,k).forEach(([,e])=>load[e]++)}
+  const tot=N*k,ideal=tot/E,mx=Math.max(...load);
+  $('#mbars').innerHTML=load.map((l,e)=>`<div class="b"><span>Expert ${e+1}</span><span><i style="width:${l/N*100}%;background:${l>ideal*1.5?'var(--warn)':l<ideal*.5?'var(--mut)':'var(--ok)'}"></i></span><span>${l}</span></div>`).join('');
+  $('#mstats').innerHTML=`${N} tokens × top-${k} = ${tot} expert calls; perfectly even = ${ideal.toFixed(0)} each. Busiest expert: <b>${mx}</b> (${(mx/ideal).toFixed(1)}× ideal). Active parameters per token ≈ ${k}/8 of the expert weights — that is why MoE models are large but cheap to run. Red = overloaded, grey = starved.`}
+$('#mK').oninput=$('#mB').oninput=drawMoE;$('#mNew').onclick=()=>{mSeed=Math.random()*1e9|0;drawMoE()};drawMoE();
+
+/* 5 inference */
+let iStep=0,iTimer=null;
+function drawInf(){const P=+$('#iP').value,O=+$('#iO').value,cache=$('#iC').checked;$('#iPv').textContent=P;$('#iOv').textContent=O;
+  const n=P+Math.max(0,iStep-0);let cells='',work=0,naive=0;
+  const total=P+Math.min(Math.max(iStep-1,0),O); // after step s: step0=none,1=prefill,2..=decode
+  for(let t=0;t<(iStep===0?0:total);t++){let cls='cached',lab='';
+    const isPre=t<P;
+    if(iStep===1&&isPre){cls='new'}
+    else if(iStep>1&&t===total-1){cls='new newest'}
+    else if(!cache&&iStep>1){cls='new'}
+    cells+=`<div class="cell" style="${cls.includes('new')?'background:rgba(var(--heat),.8);color:#fff':'background:var(--chip);color:var(--mut)'};${cls.includes('newest')?'outline:2px solid var(--acc2)':''}">${isPre?'P':'G'}</div>`}
+  $('#icells').innerHTML=cells||'<span class="note">Press Step ▶ to start prefill.</span>';
+  // cumulative token-forward-passes
+  for(let s=1;s<=iStep;s++){const len=P+Math.max(0,s-1);work+=s===1?P:(cache?1:len);naive+=s===1?P:len}
+  const m=2*P+O>0?'':'';
+  const phase=iStep===0?'idle':iStep===1?'prefill':iStep-1<O?'decode (token '+(iStep-1)+'/'+O+')':'done';
+  const run=c=>P+Array.from({length:O},(_,i)=>c?1:P+i).reduce((x,y)=>x+y,0);
+  $('#istat').innerHTML=`Phase: <b>${phase}</b> · token-positions computed so far: <b>${work.toLocaleString()}</b> · whole run: <b>${run(cache).toLocaleString()}</b> with this setting vs <b>${run(!cache).toLocaleString()}</b> ${cache?'without':'with'} the cache.`}
+function stepInf(){const O=+$('#iO').value;if(iStep<O+1)iStep++;drawInf();if(iStep>=O+1){clearInterval(iTimer);iTimer=null}}
+$('#iStep').onclick=stepInf;
+$('#iRun').onclick=()=>{if(iTimer)return;iTimer=setInterval(stepInf,150)};
+$('#iReset').onclick=()=>{clearInterval(iTimer);iTimer=null;iStep=0;drawInf()};
+$$('#inference input').forEach(e=>e.oninput=()=>{iStep=0;drawInf()});drawInf();
+
+/* 6 playground */
+let net,data,pRun=false,pEpoch=0,pLoss=0;
+function genData(kind){const r=rng(42),d=[];const N=kind==='spiral'?200:160;
+  if(kind==='xor')for(let i=0;i<N;i++){const x=r()*2-1,y=r()*2-1;d.push([x,y,x*y>0?1:0])}
+  else if(kind==='circle')for(let i=0;i<N;i++){const a=r()*6.283,rad=i%2?0.8+r()*0.2:r()*0.5;d.push([rad*Math.cos(a),rad*Math.sin(a),i%2])}
+  else for(let i=0;i<N;i++){const c=i%2,t=r()*3.2+.3,a=t*1.6+c*Math.PI;d.push([t/3.5*Math.cos(a)+(r()-.5)*.06,t/3.5*Math.sin(a)+(r()-.5)*.06,c])}
+  return d}
+function initNet(){const L=+$('#pLay').value,n=+$('#pNeu').value,sizes=[2,...Array(L).fill(n),1],r=rng(3);
+  net={sizes,W:[],B:[]};for(let l=1;l<sizes.length;l++){const s=Math.sqrt(1/sizes[l-1]);net.W.push(Array.from({length:sizes[l]},()=>Array.from({length:sizes[l-1]},()=>(r()*2-1)*s*1.7)));net.B.push(Array(sizes[l]).fill(0))}
+  data=genData($('#pData').value);pEpoch=0;pLoss=0}
+function fwd(x){const A=[x];for(let l=0;l<net.W.length;l++){const last=l===net.W.length-1,a=net.W[l].map((w,j)=>{let z=net.B[l][j];for(let i=0;i<w.length;i++)z+=w[i]*A[l][i];return last?1/(1+Math.exp(-z)):Math.tanh(z)});A.push(a)}return A}
+function trainEpoch(lr){let loss=0;for(let k=data.length-1;k>0;k--){const j=Math.random()*(k+1)|0;[data[k],data[j]]=[data[j],data[k]]}
+  for(const [x,y,t] of data){const A=fwd([x,y]),out=A[A.length-1][0];loss+=-(t*Math.log(out+1e-9)+(1-t)*Math.log(1-out+1e-9));
+    let d=[out-t];for(let l=net.W.length-1;l>=0;l--){const nd=Array(net.sizes[l]).fill(0);for(let j=0;j<net.W[l].length;j++){for(let i=0;i<net.W[l][j].length;i++){nd[i]+=net.W[l][j][i]*d[j];net.W[l][j][i]-=lr*d[j]*A[l][i]}net.B[l][j]-=lr*d[j]}
+      if(l>0)d=nd.map((v,i)=>v*(1-A[l][i]*A[l][i]))}}
+  pEpoch++;pLoss=loss/data.length}
+function drawPG(){const cv=$('#pcv'),c=cv.getContext('2d'),S=36,cs=cv.width/S;
+  for(let i=0;i<S;i++)for(let j=0;j<S;j++){const p=fwd([(i+.5)/S*2-1,1-(j+.5)/S*2]).pop()[0];c.fillStyle=`rgba(${p>.5?'232,89,12':'59,91,219'},${.12+Math.abs(p-.5)*.7})`;c.clearRect(i*cs,j*cs,cs,cs);c.fillRect(i*cs,j*cs,cs,cs)}
+  let ok=0;for(const [x,y,t] of data){const p=fwd([x,y]).pop()[0];if((p>.5)===(t===1))ok++;c.beginPath();c.arc((x+1)/2*cv.width,(1-y)/2*cv.height,4,0,7);c.fillStyle=t?'#e8590c':'#3b5bdb';c.fill();c.strokeStyle='#fff';c.lineWidth=1.2;c.stroke()}
+  $('#pstat').innerHTML=`Epoch <b>${pEpoch}</b> · loss <b>${pLoss.toFixed(3)}</b> · accuracy <b>${(ok/data.length*100).toFixed(0)}%</b> · parameters ${net.W.reduce((a,w,l)=>a+w.length*w[0].length+net.B[l].length,0)}`}
+function loopPG(){if(!pRun)return;for(let i=0;i<3;i++)trainEpoch(+$('#pLr').value);drawPG();requestAnimationFrame(loopPG)}
+$('#pPlay').onclick=()=>{pRun=!pRun;$('#pPlay').textContent=pRun?'⏸ Pause':'▶ Train';if(pRun)loopPG()};
+$('#pReset').onclick=()=>{initNet();drawPG()};$$('#pData,#pLay,#pNeu').forEach(e=>e.onchange=()=>{initNet();drawPG()});
+initNet();drawPG();
+
+/* 7 features */
+const FEAT=[
+['F-1042 Landmarks & bridges',['bridge','golden','gate','tower','monument'],['suspension','fog','tourist','iconic'],'var(--acc2)'],
+['F-3317 Programming code',['python','function','debug','code','compile','bug'],['def','return','error','stack'],'var(--acc)'],
+['F-0581 Weather & fog',['fog','rain','storm','mist','cloud','shrouded'],['forecast','humid','overcast','drizzle'],'var(--ok)'],
+['F-2209 First-person narrative',['i','my','me','we'],['wrote','felt','saw','decided'],'var(--warn)'],
+['F-4470 Past tense verbs',['was','were','wrote','went','had'],['said','made','took'],'var(--mut)']];
+$('#fSt').innerHTML='<option value="-1">(none)</option>'+FEAT.map((f,i)=>`<option value="${i}">${f[0]}</option>`).join('');
+function drawFeat(){const txt=$('#fIn').value,toks=txt.split(/(\W+)/),lw=toks.map(t=>t.toLowerCase());
+  const act=FEAT.map(f=>lw.map(t=>f[1].includes(t)?1:0));
+  $('#fOut').innerHTML=toks.map((t,i)=>{const hits=FEAT.map((f,k)=>act[k][i]?k:-1).filter(k=>k>=0);if(!hits.length)return t.replace(/</g,'&lt;');return `<span class="pill" style="border:2px solid ${FEAT[hits[0]][3]}" title="${hits.map(k=>FEAT[k][0]).join(', ')}">${t}</span>`}).join('');
+  const st=+$('#fSt').value,s=+$('#fStr').value;$('#fStrv').textContent=s;
+  const base=[['the',3],['it',2.4],['a',2.2],['and',2]];if(st>=0)FEAT[st][2].forEach((w,i)=>base.push([w,0.5+s*0.55-i*.15]));
+  FEAT.forEach(()=>{});const ex=base.map(([w,l])=>[w,Math.exp(l)]),z=ex.reduce((a,b)=>a+b[1],0);
+  const sums=FEAT.map((f,k)=>({l:f[0],v:Math.min(1,act[k].reduce((a,b)=>a+b,0)/3),c:f[3],t:act[k].reduce((a,b)=>a+b,0)}));
+  $('#fbars').innerHTML=sums.map(r=>`<div class="b" style="grid-template-columns:210px 1fr 70px"><span>${r.l}</span><span><i style="width:${r.v*100}%;background:${r.c}"></i></span><span>${r.t} hit${r.t===1?'':'s'}</span></div>`).join('')+'<div style="margin-top:10px"><b>Toy next-word distribution:</b> '+ex.sort((a,b)=>b[1]-a[1]).map(([w,e])=>`<span class="pill">${w} ${(e/z*100).toFixed(0)}%</span>`).join('')+'</div>'}
+$('#fIn').oninput=$('#fSt').onchange=$('#fStr').oninput=drawFeat;drawFeat();
+
+/* 8 atlas */
+const CL={
+ animals:[-.62,.45,'#e8590c','cat dog horse tiger whale eagle shark rabbit'],
+ fruit:[-.2,-.5,'#2f9e44','apple banana mango cherry grape lemon peach pear'],
+ vehicles:[.55,.5,'#3b5bdb','car truck bicycle train plane boat tram scooter'],
+ countries:[.62,-.45,'#ae3ec9','France Japan Brazil Kenya Canada India Peru Norway'],
+ emotions:[-.7,-.4,'#e64980','joy anger fear love grief pride calm envy'],
+ code:[.05,.08,'#0c8599','python rust function loop array stack compile pointer']};
+const PTS=[];{const r=rng(11);Object.entries(CL).forEach(([k,[cx,cy,col,ws]])=>ws.split(' ').forEach(w=>PTS.push({w,k,col,x:cx+(r()-.5)*.38,y:cy+(r()-.5)*.38})));
+  // a few bridge words between clusters
+  const mv=(w,a,b)=>{const p=PTS.find(p=>p.w===w);p.x=(p.x+a.x)/2;p.y=(p.y+a.y)/2};}
+let aHover=-1,aPin=-1,aQuery='';
+function neighbors(i,n=5){const p=PTS[i];return PTS.map((q,j)=>({j,d:Math.hypot(p.x-q.x,p.y-q.y)})).filter(o=>o.j!==i).sort((a,b)=>a.d-b.d).slice(0,n)}
+function drawAtlas(){const cv=$('#acv'),c=cv.getContext('2d'),W=cv.width,H=cv.height,X=p=>(p.x+1)/2*(W-80)+40,Y=p=>(1-p.y)/2*(H-60)+30;
+  c.clearRect(0,0,W,H);c.font='13px system-ui';
+  Object.entries(CL).forEach(([k,[cx,cy,col]])=>{c.fillStyle=col+'18';c.beginPath();c.arc(X({x:cx}),Y({y:cy}),70,0,7);c.fill();c.fillStyle=col;c.globalAlpha=.7;c.fillText(k.toUpperCase(),X({x:cx})-24,Y({y:cy})-78);c.globalAlpha=1});
+  const f=aPin>=0?aPin:aHover,nb=f>=0?neighbors(f).map(o=>o.j):[],q=aQuery.toLowerCase();
+  if(f>=0){c.strokeStyle=cssv('--mut');nb.forEach(j=>{c.beginPath();c.moveTo(X(PTS[f]),Y(PTS[f]));c.lineTo(X(PTS[j]),Y(PTS[j]));c.stroke()})}
+  PTS.forEach((p,i)=>{const hit=q&&p.w.toLowerCase().includes(q),dim=(q&&!hit)||(f>=0&&i!==f&&!nb.includes(i));c.globalAlpha=dim?.25:1;c.fillStyle=p.col;c.beginPath();c.arc(X(p),Y(p),i===f?7:5,0,7);c.fill();
+    if(!dim||hit){c.fillStyle=cssv('--ink');c.fillText(p.w,X(p)+8,Y(p)+4)}c.globalAlpha=1});
+  $('#aInfo').innerHTML=f>=0?`Nearest to <b>${PTS[f].w}</b>: ${nb.map(j=>PTS[j].w).join(', ')}${aPin>=0?' (pinned — click again to unpin)':''}`:'Hover or click a point.'}
+function atlasIdx(e){const cv=$('#acv'),r=cv.getBoundingClientRect(),sx=cv.width/r.width,mx=(e.clientX-r.left)*sx,my=(e.clientY-r.top)*sx,W=cv.width,H=cv.height;let best=-1,bd=14;PTS.forEach((p,i)=>{const d=Math.hypot((p.x+1)/2*(W-80)+40-mx,(1-p.y)/2*(H-60)+30-my);if(d<bd){bd=d;best=i}});return best}
+$('#acv').onmousemove=e=>{const i=atlasIdx(e);if(i!==aHover){aHover=i;drawAtlas()}};
+$('#acv').onclick=e=>{const i=atlasIdx(e);aPin=(i===aPin)?-1:i;drawAtlas()};
+$('#aQ').oninput=e=>{aQuery=e.target.value;drawAtlas()};
+
+function drawAll(){drawAttn();drawPG();drawAtlas()}
+drawAtlas();
+</script>
+</body>
+</html>

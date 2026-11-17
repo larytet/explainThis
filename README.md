@@ -1,4 +1,4 @@
-# explainThis
+# ExplainThis!
 
 A Claude Code skill that explains a large subsystem or module top-down, piece by piece. Each piece is reviewed bottom-up
 first, so every statement in the explanation is backed by code that was actually read. After each piece it stops and waits

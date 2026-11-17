@@ -56,6 +56,11 @@ pre.code{background:var(--bg);border:1px solid var(--line);border-radius:8px;pad
 .fix{font-size:12.5px;background:var(--chip);border-radius:8px;padding:6px 10px;margin-top:10px}
 .rank{display:grid;grid-template-columns:28px 160px 1fr;gap:8px;align-items:start;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)}
 .rank b.n{color:var(--acc)}
+.srow{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13.5px;align-items:baseline}
+.srow > span:last-child{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;overflow-wrap:anywhere}
+
+.srow button{font:13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+@media(max-width:600px){.srow{grid-template-columns:1fr;gap:2px}}
 h1{font-size:26px;margin:18px 0 4px}h2{font-size:20px;margin:0 0 2px}
 .sub{color:var(--mut);margin:0 0 12px}
 .src{font-size:12.5px;color:var(--mut);margin-bottom:10px}
@@ -95,12 +100,32 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 <main>
 <section id="intro" data-title="Start here" data-group="How an LLM works">
   <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
-  <p class="sub">A slide deck in two parts. <b>Part 1</b> is eight tiny, deterministic toys: next-token sampling, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
+  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then eight tiny, deterministic toys: next-token sampling, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
   <div class="two">
     <div class="pick"><b>Move along</b><br>Use <b>Next →</b> / <b>← Previous</b> at the bottom, the arrow keys, or the slide menu at the top.</div>
     <div class="pick"><b>Get help on anything</b><br>Hover (or tab to) any slider, button, list or diagram box to see what it does and how.</div>
   </div>
   <p class="meta" id="tipcov" style="margin-top:12px"></p>
+</section>
+
+<section id="stats" data-title="0 · The statistics you'll need" data-group="How an LLM works">
+  <h2>0 · The statistics you'll need</h2>
+  <p class="sub">The slides that follow lean on a handful of ideas from probability. Type a few numbers — think of them as a model's scores for a few possible next tokens — and every idea below is computed step by step on your numbers.</p>
+  <div class="row">
+    <label>Numbers <input id="sIn" value="2, 1, 0" style="width:200px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"></label>
+    <button id="sEx1">Try: 5, 3.6, 3.4</button><button id="sEx2">Try: −1, 0, 4</button><button id="sEx3">Try: 1, 1, 1, 1</button>
+  </div>
+  <div id="sRows">
+    <div class="srow"><span>Mean</span><span id="sMean"></span></div>
+    <div class="srow"><span>Normalise (divide by the total)</span><span id="sNorm"></span></div>
+    <div class="srow"><span>Softmax → probability distribution</span><span id="sSoft"></span></div>
+    <div class="srow"><span>Argmax (what greedy picks)</span><span id="sArg"></span></div>
+    <div class="srow"><span>Odds: top vs runner-up</span><span id="sOdds"></span></div>
+    <div class="srow"><span>Log-probabilities</span><span id="sLog"></span></div>
+    <div class="srow"><span>Entropy (how uncertain)</span><span id="sEnt"></span></div>
+    <div class="srow"><span>Sampling (randomness)</span><span><span id="sSamp"></span><br><button id="sDraw" style="margin-top:6px">Draw 100 samples</button> <button id="sClear">Reset counts</button></span></div>
+  </div>
+  <div class="note">Try −1, 0, 4: plain normalising fails on the negative number, softmax still works. Try 1, 1, 1, 1: a uniform distribution, so entropy hits its maximum and argmax is a tie.</div>
 </section>
 
 <section id="tokens">
@@ -223,6 +248,32 @@ function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}<
 const SECS=[['tokens','1 · Next-token prediction'],['attention','2 · Self-attention'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
 SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
+
+
+/* 0 stats */
+let sCounts=null,sN=0;
+function sVals(){return $('#sIn').value.split(/[\s,;]+/).filter(x=>x!=='').map(x=>Number(x.replace('−','-'))).filter(x=>isFinite(x)).slice(0,8)}
+function drawStats(){const v=sVals(),f=x=>{const r=Math.round(x*1000)/1000;return Math.abs(r)>=1e6?x.toExponential(2):String(r)},L=a=>'['+a.map(f).join(', ')+']';
+  if(v.length<2){['#sMean','#sNorm','#sSoft','#sArg','#sOdds','#sLog','#sEnt','#sSamp'].forEach(i=>$(i).textContent='');$('#sMean').textContent='Enter at least two numbers.';return}
+  if(!sCounts||sCounts.length!==v.length){sCounts=Array(v.length).fill(0);sN=0}
+  const n=v.length,sum=v.reduce((a,b)=>a+b,0);
+  $('#sMean').textContent=`(${v.map(f).join(' + ')}) / ${n} = ${f(sum)} / ${n} = ${f(sum/n)}`;
+  $('#sNorm').textContent=v.every(x=>x>=0)&&sum>0?`total ${f(sum)} → ${v.map(x=>f(x)+'/'+f(sum)).join(', ')} = ${L(v.map(x=>x/sum))}`:`fails: needs non-negative numbers with a positive total (here total = ${f(sum)}${v.some(x=>x<0)?', and some are negative':''}). This is why softmax exponentiates first.`;
+  const e=v.map(x=>Math.exp(x)),Z=e.reduce((a,b)=>a+b,0),pr=e.map(x=>x/Z);
+  $('#sSoft').textContent=`e^x = ${L(e)}, total ${f(Z)} → ${L(pr)} (sums to 1)`;
+  const mx=Math.max(...v),ties=v.map((x,i)=>x===mx?i+1:0).filter(Boolean);
+  $('#sArg').textContent=ties.length>1?`tie between items ${ties.join(', ')} (value ${f(mx)}) — greedy needs a tie-break rule`:`item ${ties[0]} (score ${f(mx)}, probability ${f(pr[ties[0]-1])})`;
+  const o=pr.map((x,i)=>[x,i]).sort((a,b)=>b[0]-a[0]);
+  $('#sOdds').textContent=`item ${o[0][1]+1} vs item ${o[1][1]+1}: ${f(o[0][0])} / ${f(o[1][0])} = ${f(o[0][0]/o[1][0])} = e^(${f(v[o[0][1]])} − ${f(v[o[1][1]])})`;
+  $('#sLog').textContent=`log p = ${L(pr.map(Math.log))} — equal to score − ${f(Math.log(Z))} (the log of the total)`;
+  const H=-pr.reduce((a,x)=>a+(x>0?x*Math.log(x):0),0);
+  $('#sEnt').textContent=`−Σ p·log p = ${f(H)}; maximum for ${n} outcomes = log ${n} = ${f(Math.log(n))} (${Math.round(H/Math.log(n)*100)}% of max)`;
+  $('#sSamp').textContent=sN?`after ${sN} draws: ${sCounts.map((c,i)=>`item ${i+1}: ${c} (expected ${f(sN*pr[i])})`).join(' · ')}`:'Press Draw: each draw picks an item at random with the softmax probabilities.'}
+$('#sIn').oninput=()=>{sCounts=null;drawStats()};
+[['#sEx1','5, 3.6, 3.4'],['#sEx2','−1, 0, 4'],['#sEx3','1, 1, 1, 1']].forEach(([b,x])=>$(b).onclick=()=>{$('#sIn').value=x;sCounts=null;drawStats()});
+$('#sDraw').onclick=()=>{const v=sVals();if(v.length<2)return;const e=v.map(x=>Math.exp(x)),Z=e.reduce((a,b)=>a+b,0);for(let k=0;k<100;k++){let r=Math.random()*Z,i=0;while(i<e.length-1&&(r-=e[i])>0)i++;sCounts[i]++}sN+=100;drawStats()};
+$('#sClear').onclick=()=>{sCounts=null;drawStats()};
+drawStats();
 
 /* 1 tokens */
 const NT=[['mat',5.0],['floor',3.6],['sofa',3.4],['bed',3.0],['roof',2.6],['table',2.4],['moon',0.6],['idea',-0.5],['tax',-1.2],['quickly',-2.0]];
@@ -873,59 +924,73 @@ $('#cClear').onclick=()=>{$$('.cNeed').forEach(c=>c.checked=false);$('#cLang').v
 
 /* ================= glossary ================= */
 const GLOSS=[
-[/\btokens?\b/i,'Token','The unit a model reads and writes: a word, part of a word, a space or a punctuation mark. Text is split into tokens before the model sees it.','"unbelievable" might become "un" + "believ" + "able" — 3 tokens. A rough rule for English: 1 token ≈ ¾ of a word.'],
+[/\btokens?\b/i,'Token','The unit a model reads and writes: a word, part of a word, a space or a punctuation mark. Text is split into tokens before the model sees it.','"unbelievable" might become "un" + "believ" + "able" — 3 tokens.\nRule of thumb for English: words ≈ tokens × 0.75, so 1,000 tokens ≈ 750 words and a 200K-token context ≈ 150K words.'],
+[/\b(probability )?distributions?\b/i,'Probability distribution','A list of every possible outcome with its probability; all probabilities are between 0 and 1 and add up to 1.','fair die: each face 1/6 ≈ 0.167, and 6 × 1/6 = 1.\nnext token: mat 0.566, floor 0.139, sofa 0.114, … (sum = 1).'],
+[/\b(re)?normalis(e|es|ed|ing)\b/i,'Normalise','Divide every number by their total so they add up to 1 and can be read as probabilities.','counts [2, 6] → total 8 → [2/8, 6/8] = [0.25, 0.75].\nrenormalise after top-k: [0.5, 0.3] → total 0.8 → [0.625, 0.375].'],
+[/\bodds\b/i,'Odds','How much more likely one outcome is than another: a ratio of probabilities.','p = 0.8 for yes → odds 0.8 / 0.2 = 4, "4 to 1".\nmat vs floor: 0.566 / 0.139 ≈ 4.07 — mat is about 4× as likely.'],
+[/\bargmax\b/i,'Argmax','The position of the largest value — not the value itself.','argmax([0.2, 0.7, 0.1]) = 2 (the second item); max = 0.7.'],
+[/\brandom(ness|ly)?\b/i,'Randomness','Outcomes decided by chance according to a probability distribution, so repeating the same step can give different results.','flip a fair coin 10 times: you expect 5 heads, but 3 or 7 happen often. Sampling a token is the same kind of draw.'],
+[/\baccuracy\b/i,'Accuracy','Share of predictions that are correct: correct ÷ total.','150 of 160 points classified right → 150 / 160 = 0.9375 ≈ 94%.'],
+[/\b(arithmetic )?mean\b|\baverages?\b/i,'Mean (average)','Add the values and divide by how many there are.','[2, 4, 9] → (2 + 4 + 9) / 3 = 15 / 3 = 5.\nGeometric mean multiplies instead: √(2 × 8) = 4, vs arithmetic mean 5.'],
+[/\bcross-entropy\b/i,'Cross-entropy','The standard training loss for classification: −log of the probability the model gave to the correct answer, averaged over examples.','right answer got p = 0.9 → −log 0.9 = 0.105\ngot p = 0.1 → −log 0.1 = 2.303 (much worse)\naverage over two examples: (0.105 + 2.303) / 2 = 1.204'],
+[/\blog-probabilit(y|ies)\b/i,'Log-probability','The natural logarithm of a probability. Always ≤ 0; multiplying probabilities becomes adding logs, which avoids tiny numbers.','log 0.5 = −0.693, log 0.25 = −1.386\n0.5 × 0.5 = 0.25 ↔ −0.693 + (−0.693) = −1.386'],
+[/\bdeterministic\b/i,'Deterministic','Same input → same output, every time. No randomness involved (or the random generator always starts from the same seed).','greedy decoding is deterministic; sampling at temperature 1 is not.'],
+[/\bdot product\b/i,'Dot product','Multiply two vectors position by position and add the results. Large when they point the same way.','[1, 2, 3] · [4, 5, 6] = 1·4 + 2·5 + 3·6 = 4 + 10 + 18 = 32.'],
+[/\bvectors?\b/i,'Vector','An ordered list of numbers; each number is one dimension.','[0.2, −1.3, 0.7] is a 3-dimensional vector. Real embeddings have hundreds to thousands of dimensions.'],
+[/\buniform\b|\bevenly\b|\beven spread\b/i,'Uniform (even) distribution','Every outcome equally likely: each gets 1 ÷ (number of outcomes).','8 experts evenly loaded → 1/8 = 12.5% of tokens each; 64 tokens × top-2 → 16 per expert.',['stats','tokens','attention','variants','moe','inference','playground','features','atlas']],
+[/\bentropy\b/i,'Entropy','How spread out (uncertain) a distribution is: −Σ p · log p. 0 when one outcome is certain; largest when all are equal.','[1, 0, 0] → 0\n[0.665, 0.245, 0.090] → 0.832\n[1/3, 1/3, 1/3] → log 3 = 1.099 (maximum for 3 outcomes)'],
 [/\bvocabulary\b/i,'Vocabulary','The fixed list of every token a model knows, typically 30,000–250,000 entries. Each step the model scores all of them.','GPT-2 has 50,257 tokens in its vocabulary.'],
-[/\blogits?\b/i,'Logit','The raw score the model gives each token before turning scores into probabilities. Any real number; higher means more likely.','After "The cat sat on the", "mat" might get 5.0 and "tax" −1.2.'],
+[/\blogits?\b/i,'Logit','The raw score the model gives each token before turning scores into probabilities. Any real number; higher means more likely.','After "The cat sat on the": mat = 5.0, floor = 3.6.\nDifference 5.0 − 3.6 = 1.4, so after softmax mat is e^1.4 ≈ 4.06× as likely as floor.\nCheck on slide 1: 56.6% / 13.9% ≈ 4.07.'],
 [/\bsoftmax\b/i,'Softmax','Turns a list of scores into probabilities that are all positive and add up to 1: exponentiate each score, then divide by the total.','scores [2, 1, 0]\n1) exponentiate: e² = 7.389, e¹ = 2.718, e⁰ = 1\n2) add them up: 7.389 + 2.718 + 1 = 11.107\n3) divide each by the total: 7.389 / 11.107 = 0.665, 2.718 / 11.107 = 0.245, 1 / 11.107 = 0.090\n→ probabilities [0.665, 0.245, 0.090], which sum to 1.\nFormula: softmax(xᵢ) = eˣⁱ / Σⱼ eˣʲ\n\nWhy exp?\n• Always positive: dividing raw scores by their sum breaks on negatives and gives a 0 logit zero chance ([2,1,0] → [0.67, 0.33, 0]).\n• Only differences matter: [12,11,10] gives the same result as [2,1,0], because a shared constant cancels. Each +1 in a logit multiplies the odds by e ≈ 2.718.\n• Logits are log-probabilities, and exp undoes the log. Training stays simple too: the gradient of −log softmax is (predicted − target).\n• A \"soft\" max: the biggest score gets most of the probability, not all of it.\nAveraging logits from two models = a geometric mean of their probabilities: √(0.8·0.5), √(0.2·0.5) → [0.667, 0.333].'],
-[/\btemperature\b/i,'Temperature','A dial on randomness: every logit is divided by it before softmax. Below 1 makes the top choice dominate; above 1 spreads probability out.','At 0.2 the model nearly always says "mat"; at 2.0 "sofa" or "roof" show up often.'],
-[/\btop-k\b/i,'Top-k','Sampling restriction: keep only the k most likely tokens, drop the rest, renormalise. k = 1 is greedy decoding.','With k = 3 only "mat", "floor" and "sofa" can be picked.'],
-[/\bgreedy\b/i,'Greedy decoding','Always pick the single most likely next token. Deterministic, but can be repetitive.','Same prompt → same output every time.'],
-[/\bsampl(e|ed|es|ing)\b/i,'Sampling','Picking the next token at random according to its probability, so likely tokens win often but not always.','"mat" at 57% is chosen about 57 times in 100 draws.'],
-[/\bprobabilit(y|ies)\b/i,'Probability','How likely an outcome is, from 0 (never) to 1 (always). Over all tokens they add up to 1.',''],
-[/\bself-attention\b/i,'Self-attention','Each token looks at the other tokens in the same text and pulls in information from the relevant ones. The core operation of a transformer.','In "the animal was too tired", "tired" attends strongly to "animal".'],
-[/\bmulti-head attention\b|\bMHA\b/,'Multi-head attention (MHA)','Run several attention "heads" side by side, each with its own Q, K and V, and combine their outputs. Each head can learn a different pattern.','One head tracks the previous word, another links pronouns to nouns.'],
-[/\battention\b/i,'Attention','A mechanism that lets each token weigh every other (earlier) token by relevance and take a weighted mix of their information.',''],
-[/\bquery\b/i,'Query (Q)','A vector each token produces meaning "what am I looking for?". It is compared with every key to get attention weights.','The query of "it" looks for a noun it could refer to.',['attention','variants','inference']],
-[/\bkeys?\b/i,'Key (K)','A vector each token produces meaning "what do I contain?". Queries are matched against keys (dot product) to score relevance.','',['attention','variants','inference']],
-[/\bvalues?\b/i,'Value (V)','A vector each token produces meaning "what I hand over". The attention output is a weighted sum of values.','',['attention','variants','inference']],
-[/\bheads?\b/i,'Attention head','One independent attention computation inside a layer. Real models have dozens of heads per layer.','A 32-layer model with 32 heads per layer has 1,024 heads.',['attention','variants','inference']],
-[/\bcausal mask\b|\bmasked\b/i,'Causal mask','Blocks attention to future tokens, so each token sees only itself and what came before. Required for left-to-right generation.','When predicting word 5, words 6+ are hidden.'],
+[/\btemperature\b/i,'Temperature','A dial on randomness: every logit is divided by it before softmax. Below 1 makes the top choice dominate; above 1 spreads probability out.','logits [2, 1, 0]\nT = 0.5: divide → [4, 2, 0]; e⁴ = 54.598, e² = 7.389, e⁰ = 1; sum 62.987 → [0.867, 0.117, 0.016] (sharper)\nT = 1: → [0.665, 0.245, 0.090]\nT = 2: divide → [1, 0.5, 0]; e¹ = 2.718, e^0.5 = 1.649, e⁰ = 1; sum 5.367 → [0.506, 0.307, 0.186] (flatter)'],
+[/\btop-k\b/i,'Top-k','Sampling restriction: keep only the k most likely tokens, drop the rest, renormalise. k = 1 is greedy decoding.','probabilities [0.5, 0.3, 0.2], k = 2\n1) keep the top 2: [0.5, 0.3], drop 0.2\n2) their sum: 0.5 + 0.3 = 0.8\n3) renormalise: 0.5 / 0.8 = 0.625, 0.3 / 0.8 = 0.375\n→ [0.625, 0.375, 0]'],
+[/\bgreedy\b/i,'Greedy decoding','Always pick the single most likely next token. Deterministic, but can be repetitive.','probabilities [0.665, 0.245, 0.090] → argmax = token 1, every time. Same prompt → same output.'],
+[/\bsampl(e|ed|es|ing)\b/i,'Sampling','Picking the next token at random according to its probability, so likely tokens win often but not always.','probabilities [0.665, 0.245, 0.090] → stack them on a 0–1 line:\ntoken 1: 0 – 0.665, token 2: 0.665 – 0.910, token 3: 0.910 – 1\ndraw a random number r = 0.72 → it falls in 0.665 – 0.910 → token 2.\nOver 100 draws: ≈ 67, 24 and 9 times.'],
+[/\bprobabilit(y|ies)\b/i,'Probability','How likely an outcome is, from 0 (never) to 1 (always). Over all tokens they add up to 1.','[0.665, 0.245, 0.090]: each between 0 and 1, and 0.665 + 0.245 + 0.090 = 1.'],
+[/\bself-attention\b/i,'Self-attention','Each token looks at the other tokens in the same text and pulls in information from the relevant ones. The core operation of a transformer.','2 tokens, head dim d = 4. Query of token 2: q = [1, 0, 1, 0]\nkeys: k₁ = [1, 0, 1, 0], k₂ = [0, 1, 0, 1]\n1) dot products: q·k₁ = 1+0+1+0 = 2, q·k₂ = 0\n2) scale by √d = 2: [1, 0]\n3) softmax: [0.731, 0.269]\n4) output = 0.731·v₁ + 0.269·v₂; with v₁ = [1, 0], v₂ = [0, 1] → [0.731, 0.269]'],
+[/\bmulti-head attention\b|\bMHA\b/,'Multi-head attention (MHA)','Run several attention "heads" side by side, each with its own Q, K and V, and combine their outputs. Each head can learn a different pattern.','32 heads, each with its own 128-dim Q, K and V. Their 32 outputs are concatenated: 32 × 128 = 4,096 numbers, then mixed by one output matrix.'],
+[/\battention\b/i,'Attention','A mechanism that lets each token weigh every other (earlier) token by relevance and take a weighted mix of their information.','weights = softmax(q·k / √d), output = Σ weight × value.\nScores [2, 0] for two tokens, d = 4: [2, 0] / 2 = [1, 0] → softmax → [0.731, 0.269] → 73% of the output comes from token 1.'],
+[/\bquery\b/i,'Query (Q)','A vector each token produces meaning "what am I looking for?". It is compared with every key to get attention weights.','q = [1, 0, 1, 0] against k = [1, 0, 1, 0]: q·k = 1·1 + 0·0 + 1·1 + 0·0 = 2 (similar → high score)\nagainst k = [0, 1, 0, 1]: q·k = 0 (unrelated → low score).',['attention','variants','inference']],
+[/\bkeys?\b/i,'Key (K)','A vector each token produces meaning "what do I contain?". Queries are matched against keys (dot product) to score relevance.','k = [1, 0, 1, 0] scores 2 against the query [1, 0, 1, 0] and 0 against [0, 1, 0, 1]. Keys pointing the same way as a query get the attention.',['attention','variants','inference']],
+[/\bvalues?\b/i,'Value (V)','A vector each token produces meaning "what I hand over". The attention output is a weighted sum of values.','attention weights [0.731, 0.269], values v₁ = [1, 0], v₂ = [0, 1]\noutput = 0.731·[1, 0] + 0.269·[0, 1] = [0.731, 0.269]',['attention','variants','inference']],
+[/\bheads?\b/i,'Attention head','One independent attention computation inside a layer. Real models have dozens of heads per layer.','32 heads × 128 dims per head = 4,096 = the model width.\n32 layers × 32 heads = 1,024 heads in the model.',['attention','variants','inference']],
+[/\bcausal mask\b|\bmasked\b/i,'Causal mask','Blocks attention to future tokens, so each token sees only itself and what came before. Required for left-to-right generation.','scores for token 2 looking at tokens 1, 2, 3: [2, 1, 5]\nmask the future token: [2, 1, −∞]; e^−∞ = 0\nsoftmax → [0.731, 0.269, 0]: token 3 gets exactly zero weight however high its score.'],
 [/\btransformers?\b/i,'Transformer','The neural-network architecture behind modern LLMs: stacked layers of attention plus small feed-forward networks.','GPT, Claude, Gemini and Llama are all transformers.'],
 [/\blayers?\b/i,'Layer','One block of the network. In a transformer each layer is attention followed by a feed-forward network; models stack 12 to 100+ of them.',''],
-[/\bKV cache\b/i,'KV cache','Memory of the keys and values already computed for earlier tokens, so each new token only computes its own instead of redoing the whole text.','Generating token 1,001 reuses the K/V of tokens 1–1,000.'],
-[/\bGQA\b|\bgrouped-query\b/i,'Grouped-query attention (GQA)','Several query heads share one key/value head, so the KV cache shrinks by the group size.','32 query heads in 8 groups → 4× smaller cache than MHA.'],
-[/\bMQA\b|\bmulti-query\b/i,'Multi-query attention (MQA)','All query heads share a single key/value head: the smallest cache, at some quality cost.',''],
-[/\bMLA\b|\blatent\b/i,'Multi-head latent attention (MLA)','Caches one compressed "latent" vector per token and rebuilds keys and values from it. Introduced in DeepSeek models.',''],
-[/\bsliding window\b/i,'Sliding-window attention','Each token attends only to the last W tokens, so memory stops growing after W.','With W = 4,096, token 10,000 sees tokens 5,905–10,000.'],
-[/\bcontext\b/i,'Context (window)','All the tokens the model can see at once: prompt plus generated text. Its maximum length is the context window.','A 200K-token context holds roughly a 500-page book.'],
-[/\bfp16\b|\bbf16\b/i,'fp16 / bf16','16-bit number formats (2 bytes each) used to store weights and caches. Half the memory of 32-bit floats.',''],
-[/\bMixture of Experts\b|\bMoE\b/,'Mixture of Experts (MoE)','A layer made of many smaller feed-forward "experts"; each token is sent to only a few of them. Huge total size, modest compute per token.','8 experts, top-2 routing: each token uses 2 of 8.'],
-[/\brouter\b|\brouting\b/i,'Router','A small learned network in an MoE layer that scores the experts for each token and picks the top-k.',''],
+[/\bKV cache\b/i,'KV cache','Memory of the keys and values already computed for earlier tokens, so each new token only computes its own instead of redoing the whole text.','cache per token = 2 (K and V) × layers × KV heads × head dim × bytes\n= 2 × 32 × 32 × 128 × 2 B = 524,288 B = 512 KiB\n× 32,768 tokens = 16 GiB for one sequence (plain MHA, fp16).'],
+[/\bGQA\b|\bgrouped-query\b/i,'Grouped-query attention (GQA)','Several query heads share one key/value head, so the KV cache shrinks by the group size.','same model, 8 KV groups instead of 32 heads:\n2 × 32 × 8 × 128 × 2 B = 128 KiB per token\n× 32,768 tokens = 4 GiB — 4× less than MHA (16 GiB).'],
+[/\bMQA\b|\bmulti-query\b/i,'Multi-query attention (MQA)','All query heads share a single key/value head: the smallest cache, at some quality cost.','1 shared KV head: 2 × 32 × 1 × 128 × 2 B = 16 KiB per token\n× 32,768 tokens = 0.5 GiB — 32× less than MHA.'],
+[/\bMLA\b|\blatent\b/i,'Multi-head latent attention (MLA)','Caches one compressed "latent" vector per token and rebuilds keys and values from it. Introduced in DeepSeek models.','per layer, cache one 512-dim latent + a 64-dim RoPE part:\n32 layers × (512 + 64) × 2 B = 36 KiB per token\n× 32,768 tokens = 1.125 GiB (vs 16 GiB for MHA).'],
+[/\bsliding window\b/i,'Sliding-window attention','Each token attends only to the last W tokens, so memory stops growing after W.','W = 4,096: token 10,000 sees tokens 5,905 – 10,000.\nCache stops at 4,096 tokens × 512 KiB = 2 GiB, whether the context is 32K or 1M.'],
+[/\bcontext\b/i,'Context (window)','All the tokens the model can see at once: prompt plus generated text. Its maximum length is the context window.','200K-token window ≈ 150K words ≈ a 500-page book.\nPrompt 150K + answer 60K = 210K → too long for a 200K window.'],
+[/\bfp16\b|\bbf16\b/i,'fp16 / bf16','16-bit number formats (2 bytes each) used to store weights and caches. Half the memory of 32-bit floats.','2 bytes per number. A 7B-parameter model: 7 × 10⁹ × 2 B = 14 GB of weights (28 GB in 32-bit floats).'],
+[/\bMixture of Experts\b|\bMoE\b/,'Mixture of Experts (MoE)','A layer made of many smaller feed-forward "experts"; each token is sent to only a few of them. Huge total size, modest compute per token.','8 experts, top-2 routing: each token runs through 2 of 8 → 25% of the expert weights per token.'],
+[/\brouter\b|\brouting\b/i,'Router','A small learned network in an MoE layer that scores the experts for each token and picks the top-k.','router scores for one token: E1 = 2.0, E2 = 1.0, the rest lower → pick top-2\nweights = softmax([2, 1]) = e² / (e² + e¹) = 7.389 / 10.107 = 0.731, and 0.269\noutput = 0.731 · E1(x) + 0.269 · E2(x)'],
 [/\bexperts?\b/i,'Expert','One of the parallel feed-forward networks in an MoE layer.',''],
-[/\bload[- ]balancing\b/i,'Load balancing','A training penalty that pushes the router to spread tokens evenly so no expert is overloaded and none sits idle.',''],
-[/\bactive parameters\b/i,'Active parameters','The weights actually used for one token. In MoE this is far fewer than the total parameter count.','A 671B-parameter MoE might use ~37B per token.'],
+[/\bload[- ]balancing\b/i,'Load balancing','A training penalty that pushes the router to spread tokens evenly so no expert is overloaded and none sits idle.','64 tokens × top-2 = 128 expert calls ÷ 8 experts = 16 each when perfectly even.\nIf one expert gets 40, it is 2.5× overloaded while others starve.'],
+[/\bactive parameters\b/i,'Active parameters','The weights actually used for one token. In MoE this is far fewer than the total parameter count.','2B shared + 8 experts × 5B = 42B total.\ntop-2 → 2B + 2 × 5B = 12B active per token (≈ 29%).'],
 [/\binference\b/i,'Inference','Running a trained model to produce output — as opposed to training it.',''],
-[/\bprefill\b/i,'Prefill','The first phase of inference: the whole prompt is processed in one parallel pass, filling the KV cache.','A 2,000-token prompt is processed at once, not word by word.'],
-[/\bdecode\b|\bdecoding\b/i,'Decode','The second phase of inference: generate one token per step, each step reading the whole KV cache.',''],
-[/\bcompute-bound\b/i,'Compute-bound','Speed limited by how fast the chip can do arithmetic. Prefill is compute-bound.',''],
-[/\bmemory-bandwidth-bound\b/i,'Memory-bandwidth-bound','Speed limited by how fast data moves from memory to the chip. Decode is memory-bound: it re-reads all weights for every token.',''],
-[/\bmatmul\b/i,'Matmul','Matrix multiplication — the operation that makes up most of an LLM\'s compute.',''],
+[/\bprefill\b/i,'Prefill','The first phase of inference: the whole prompt is processed in one parallel pass, filling the KV cache.','prompt of 24 tokens → one parallel pass computes all 24 positions at once and fills the KV cache.'],
+[/\bdecode\b|\bdecoding\b/i,'Decode','The second phase of inference: generate one token per step, each step reading the whole KV cache.','24-token prompt, 16 output tokens:\nwith KV cache: 24 (prefill) + 16 × 1 = 40 token-positions computed\nwithout: 24 + (24 + 25 + … + 39) = 24 + 504 = 528 — 13× more work.'],
+[/\bcompute-bound\b/i,'Compute-bound','Speed limited by how fast the chip can do arithmetic. Prefill is compute-bound.','prefill of 2,000 tokens reuses each weight 2,000 times per read, so the arithmetic units, not memory, set the speed.'],
+[/\bmemory-bandwidth-bound\b/i,'Memory-bandwidth-bound','Speed limited by how fast data moves from memory to the chip. Decode is memory-bound: it re-reads all weights for every token.','decode reads all weights once per token. 14 GB of weights at 2 TB/s memory bandwidth:\n14 GB ÷ 2,000 GB/s = 7 ms per token → at most ≈ 143 tokens/s for one sequence, however fast the arithmetic is.'],
+[/\bmatmul\b/i,'Matmul','Matrix multiplication — the operation that makes up most of an LLM\'s compute.','(m × k) · (k × n) costs m · k · n multiply-adds.\none token through a 4,096 × 4,096 weight matrix: 1 × 4,096 × 4,096 = 16.8M multiply-adds.'],
 [/\bneural net(work)?s?\b|\bnets?\b(?= )/i,'Neural network','Layers of simple units (neurons) connected by weights; training adjusts the weights so the outputs match examples.',''],
-[/\bMLP\b/,'MLP (multi-layer perceptron)','The simplest neural network: fully connected layers with a non-linearity between them.',''],
-[/\bneurons?\b/i,'Neuron','One unit: multiply inputs by weights, add a bias, apply a non-linear function.',''],
-[/\btanh\b/,'tanh','A non-linear activation function that squashes any number into −1…1. Without non-linearities, stacked layers collapse into one.',''],
-[/\bSGD\b|\bgradient descent\b/i,'Stochastic gradient descent (SGD)','The training method: for each example, nudge every weight a little in the direction that reduces the loss.',''],
-[/\blearning rate\b/i,'Learning rate','How big each weight update is. Too small learns slowly; too large overshoots and training diverges.','0.03 trains smoothly here; 0.3 often oscillates.'],
-[/\bepochs?\b/i,'Epoch','One full pass over the training data.',''],
-[/\bloss\b/i,'Loss','A number measuring how wrong the predictions are. Training tries to make it smaller.','Cross-entropy loss: 0.69 = coin-flip guessing, near 0 = confident and right.'],
-[/\bweights?\b/i,'Weights','The learned numbers inside a network. "Training" means adjusting them; "model size" counts them.','',['intro','moe','inference','playground','features']],
+[/\bMLP\b/,'MLP (multi-layer perceptron)','The simplest neural network: fully connected layers with a non-linearity between them.','the toy on slide 6 (2 inputs, two hidden layers of 8, 1 output):\n(2·8 + 8) + (8·8 + 8) + (8·1 + 1) = 24 + 72 + 9 = 105 parameters.'],
+[/\bneurons?\b/i,'Neuron','One unit: multiply inputs by weights, add a bias, apply a non-linear function.','inputs [0.5, −1], weights [0.8, 0.2], bias 0.1\nz = 0.5·0.8 + (−1)·0.2 + 0.1 = 0.4 − 0.2 + 0.1 = 0.3\noutput = tanh(0.3) = 0.291'],
+[/\btanh\b/,'tanh','A non-linear activation function that squashes any number into −1…1. Without non-linearities, stacked layers collapse into one.','tanh(0) = 0, tanh(0.3) = 0.291, tanh(1) = 0.762, tanh(3) = 0.995 — big inputs saturate near ±1.'],
+[/\bSGD\b|\bgradient descent\b/i,'Stochastic gradient descent (SGD)','The training method: for each example, nudge every weight a little in the direction that reduces the loss.','update rule: w ← w − learning rate × gradient\nw = 0.50, gradient = 2.0, lr = 0.03 → 0.50 − 0.06 = 0.44'],
+[/\blearning rate\b/i,'Learning rate','How big each weight update is. Too small learns slowly; too large overshoots and training diverges.','w = 0.50, gradient = 2.0\nlr = 0.03 → w = 0.50 − 0.03 × 2.0 = 0.44 (small step)\nlr = 0.3 → w = 0.50 − 0.3 × 2.0 = −0.10 (jumps past the minimum and can oscillate)'],
+[/\bepochs?\b/i,'Epoch','One full pass over the training data.','160 training points, one update per point → 160 weight updates per epoch. The toy runs 3 epochs per frame = 480 updates.'],
+[/\bloss\b/i,'Loss','A number measuring how wrong the predictions are. Training tries to make it smaller.','cross-entropy = −log(probability given to the right answer)\np = 0.9 → −log 0.9 = 0.105 (good)\np = 0.5 → 0.693 (coin flip)\np = 0.1 → 2.303 (confidently wrong)'],
+[/\bweights?\b/i,'Weights','The learned numbers inside a network. "Training" means adjusting them; "model size" counts them.','a layer from 8 neurons to 8 neurons: 8 × 8 = 64 weights + 8 biases = 72 parameters.',['intro','moe','inference','playground','features']],
 [/\bfeatures?\b/i,'Feature (interpretability)','A direction in the model\'s internal activations that corresponds to a human-recognisable concept.','A "Golden Gate Bridge" feature fires on text about the bridge.',['features','intro']],
 [/\bsparse autoencoder\b/i,'Sparse autoencoder (SAE)','A small network trained to rewrite a model\'s activations as a few active features out of many thousands, making them easier to interpret.',''],
-[/\bsteer(ing)?\b/i,'Steering','Adding a feature\'s direction to the model\'s activations while it runs, to push its output towards that concept.','Boosting a "weather" feature makes the model drift into talking about fog.',['features']],
+[/\bsteer(ing)?\b/i,'Steering','Adding a feature\'s direction to the model\'s activations while it runs, to push its output towards that concept.','new activation = activation + strength × feature direction\nh = [0.2, 0.5], weather direction d = [1, 0], strength 4 → h + 4·d = [4.2, 0.5]',['features']],
 [/\binterpretability\b/i,'Interpretability','Research into what is happening inside a model: which internal parts represent which concepts.',''],
-[/\bembeddings?\b/i,'Embedding','A list of numbers (a vector) representing a token, word or document, placed so similar meanings are close together.','"cat" and "dog" are near each other; "cat" and "tax" are far apart.'],
-[/\bcosine\b/i,'Cosine similarity','Similarity of two vectors by the angle between them: 1 = same direction, 0 = unrelated, −1 = opposite.',''],
-[/\bnearest neighbou?rs?\b/i,'Nearest neighbours','The points closest to a given point; in embedding space, the most similar items.',''],
+[/\bembeddings?\b/i,'Embedding','A list of numbers (a vector) representing a token, word or document, placed so similar meanings are close together.','2D toy: cat = [−0.6, 0.5], dog = [−0.5, 0.4], tax = [0.6, −0.4]\ncat ↔ dog distance = √(0.1² + 0.1²) = 0.14; cat ↔ tax = √(1.2² + 0.9²) = 1.5 → cat is much closer to dog.'],
+[/\bcosine\b/i,'Cosine similarity','Similarity of two vectors by the angle between them: 1 = same direction, 0 = unrelated, −1 = opposite.','cos = (a · b) / (|a| · |b|)\na = [1, 2], b = [2, 3]: a · b = 1·2 + 2·3 = 8\n|a| = √5 = 2.236, |b| = √13 = 3.606\ncos = 8 / (2.236 × 3.606) = 8 / 8.062 = 0.992 (almost the same direction)\n[1, 0] vs [0, 1] → 0 (unrelated)'],
+[/\bnearest neighbou?rs?\b/i,'Nearest neighbours','The points closest to a given point; in embedding space, the most similar items.','distance from (0, 0) to (3, 4) = √(3² + 4²) = √25 = 5. Sort every point by distance, keep the 5 smallest.'],
 [/\bclusters?\b/i,'Cluster','A group of points that sit close together — in embeddings, usually items with related meaning.','',['atlas']],
 [/\bLLMs?\b/,'LLM (large language model)','A neural network trained on huge amounts of text to predict the next token; chat assistants are LLMs fine-tuned to follow instructions.',''],
 [/\bagent loop\b/i,'Agent loop','The cycle at the heart of an agent: call the model → run the tools it asks for → feed results back → repeat until it answers.',''],
@@ -949,7 +1014,7 @@ const GLOSS=[
 [/\bstreaming\b|\bstream\b/i,'Streaming','Sending output piece by piece as it is generated, so users see text appear immediately.',''],
 [/\bsystem prompt\b|\binstructions\b/i,'System prompt / instructions','Standing instructions that frame every request: role, rules, tone, output format.','"You are a support agent. Answer only from the docs."'],
 [/\bprompts?\b/i,'Prompt','The text (and other input) sent to the model for one request.',''],
-[/\bevals?\b|\bevaluation\b/i,'Evals','Automated tests of model or agent quality on a fixed set of examples, scored by rules, metrics or another model.',''],
+[/\bevals?\b|\bevaluation\b/i,'Evals','Automated tests of model or agent quality on a fixed set of examples, scored by rules, metrics or another model.','50 test questions, 42 answered correctly → 84%. After a prompt change: 46 / 50 = 92% — an 8-point improvement you can measure.'],
 [/\btrac(ing|es?)\b|\bobservability\b|\btelemetry\b/i,'Tracing / observability','Recording every model call, tool call, input and output of a run so you can debug and measure it.',''],
 [/\bReAct\b/,'ReAct','"Reason + Act": the model alternates between thinking about what to do, taking an action (tool call) and observing the result.',''],
 [/\bsandbox(ed)?\b/i,'Sandbox','An isolated environment (container or VM) where agent-written code runs without access to your real system.',''],
@@ -957,7 +1022,7 @@ const GLOSS=[
 [/\bvector stores?\b/i,'Vector store','A database that stores embeddings and finds the nearest ones to a query quickly.',''],
 [/\bretrievers?\b/i,'Retriever','The component that, given a question, fetches the most relevant documents or chunks.',''],
 [/\bchunks?\b/i,'Chunk','A piece of a document (a few hundred tokens) stored and retrieved separately in RAG.',''],
-[/\bmetric\b/i,'Metric','A function that scores an output, e.g. exact match or "did the answer cite a source?". Optimizers and evals need one.',''],
+[/\bmetric\b/i,'Metric','A function that scores an output, e.g. exact match or "did the answer cite a source?". Optimizers and evals need one.','exact match on 50 test questions, 42 right → 42 / 50 = 0.84.'],
 [/\bfew-shot\b|\bdemos\b/i,'Few-shot examples','Worked input → output examples placed in the prompt to show the model what you want.',''],
 [/\bharness\b/i,'Harness','The code around the model that runs the agent loop: tools, context management, permissions, retries.','Claude Code is a harness around Claude.'],
 [/\bSDK\b/,'SDK','Software development kit: a library for calling a service or building on a platform from your code.',''],
@@ -977,6 +1042,12 @@ const TIPS={
 '#prev':'Previous slide. Shortcut: ← (ignored while a slider or text box has focus).',
 '#next':'Next slide. Shortcut: → (ignored while a slider or text box has focus).',
 '#prog':'How far through the deck you are.',
+'#sIn':'Type 2 to 8 numbers separated by commas or spaces, e.g. 2, 1, 0. Negative and decimal numbers are fine. Every row below recomputes as you type.',
+'#sEx1':'Load the next-token scores from slide 1 (mat 5.0, floor 3.6, sofa 3.4).',
+'#sEx2':'Load a list with a negative number, to see plain normalising fail while softmax still works.',
+'#sEx3':'Load four equal scores: a uniform distribution with maximum entropy and a tie for argmax.',
+'#sDraw':'Draw 100 random items using the softmax probabilities and add them to the counts. Watch the counts approach the expected values as draws accumulate.',
+'#sClear':'Set all sample counts back to zero.',
 '#temp':'Temperature divides every logit before softmax. Below 1 sharpens the distribution (more predictable); above 1 flattens it (more random). Drag and watch the bars.',
 '#topk':'Keep only the k highest-scoring tokens, zero the rest, then renormalise. k = 1 is greedy decoding.',
 '#sample':'Draw one token at random from the bars, using the current temperature and top-k. Press repeatedly to see the randomness.',

@@ -16,6 +16,7 @@ nav{display:flex;gap:4px;flex-wrap:wrap;flex:1}
 nav a{color:var(--mut);text-decoration:none;padding:3px 9px;border-radius:99px;font-size:13px;border:1px solid transparent}
 nav a:hover,nav a.on{color:var(--acc);border-color:var(--line);background:var(--panel)}
 button,select,input{font:inherit;color:inherit}
+select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 4px}
 button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
 button:hover{border-color:var(--acc)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -90,18 +91,18 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
   <button id="theme" aria-label="Toggle theme">◐</button>
 </header>
 <main>
-<section id="resources" data-title="Start: the ten resources" data-group="How an LLM works">
+<section id="intro" data-title="Start here" data-group="How an LLM works">
   <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
-  <p class="sub">A slide deck. Part 1 is eight tiny, deterministic toys inspired by the resources below — simplified models with hand-set numbers, not real model weights. Part 2 has one slide per agent framework, checked against each project's official docs. Use <b>Next →</b> at the bottom (or the → key) to move along, and hover any control to see what it does.</p>
-  <p class="meta" id="tipcov"></p>
-  <h2>The ten resources</h2>
-  <p class="sub">Short links were resolved in a browser; the destinations are shown below.</p>
-  <div class="grid" id="resgrid"></div>
+  <p class="sub">A slide deck in two parts. <b>Part 1</b> is eight tiny, deterministic toys: next-token sampling, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
+  <div class="two">
+    <div class="pick"><b>Move along</b><br>Use <b>Next →</b> / <b>← Previous</b> at the bottom, the arrow keys, or the slide menu at the top.</div>
+    <div class="pick"><b>Get help on anything</b><br>Hover (or tab to) any slider, button, list or diagram box to see what it does and how.</div>
+  </div>
+  <p class="meta" id="tipcov" style="margin-top:12px"></p>
 </section>
 
 <section id="tokens">
   <h2>1 · Next-token prediction <span class="tag">Transformer Explainer · 3Blue1Brown</span></h2>
-  <div class="src">Real thing: <a href="https://poloclub.github.io/transformer-explainer/" target="_blank" rel="noopener">poloclub.github.io/transformer-explainer</a> runs a live GPT-2 in your browser.</div>
   <p>A model turns the text so far into a score (logit) for every token in its vocabulary. Softmax makes probabilities; <b>temperature</b> and <b>top-k</b> shape how the next token is picked.</p>
   <div>Prompt: <span class="tok">The</span><span class="tok">cat</span><span class="tok">sat</span><span class="tok">on</span><span class="tok">the</span><b id="gen"></b><span class="tok" style="opacity:.5">▁?</span></div>
   <div class="row">
@@ -116,7 +117,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="attention">
   <h2>2 · Self-attention: Q, K and V <span class="tag">Illustrated Transformer · LLM Visualization</span></h2>
-  <div class="src">Real things: <a href="https://jalammar.github.io/illustrated-transformer/" target="_blank" rel="noopener">The Illustrated Transformer</a> · <a href="https://bbycroft.net/llm" target="_blank" rel="noopener">bbycroft.net/llm</a> (3D walk through nano-GPT).</div>
   <p>Each token makes a <b>query</b> ("what am I looking for?"), a <b>key</b> ("what do I contain?") and a <b>value</b> ("what I hand over"). Weights = softmax(Q·K / √d), masked so a token only sees the past. Click a token to see where it looks. Three hand-made "heads" show that heads specialise.</p>
   <div class="row">
     <label>Head <select id="head"><option value="0">Head A — previous token</option><option value="1" selected>Head B — pronoun → referent</option><option value="2">Head C — local window</option></select></label>
@@ -129,7 +129,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="variants">
   <h2>3 · Attention variants and the KV cache <span class="tag">Visual Guide to Attention Variants</span></h2>
-  <div class="src">Real thing: <a href="https://magazine.sebastianraschka.com/p/visual-attention-variants" target="_blank" rel="noopener">Raschka — A Visual Guide to Attention Variants in Modern LLMs</a> (MHA, GQA, MLA, sparse and hybrid).</div>
   <p>During generation every past token's keys and values are cached. Variants differ mainly in <b>how much they cache per token</b>. Set a model shape and compare (bytes = 2 for fp16/bf16).</p>
   <div class="row">
     <label>Layers <input id="vL" type="range" min="8" max="96" value="32"><b id="vLv"></b></label>
@@ -148,7 +147,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="moe">
   <h2>4 · Mixture of Experts routing <span class="tag">Visual Guide to MoE</span></h2>
-  <div class="src">Real thing: <a href="https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts" target="_blank" rel="noopener">Maarten Grootendorst — A Visual Guide to Mixture of Experts</a>.</div>
   <p>A router scores 8 experts for each token and sends it to the top-k. Left alone, a router tends to favour a few "popular" experts and the rest sit idle. A <b>load-balancing</b> term nudges it towards an even spread.</p>
   <div class="row">
     <label>Top-k experts <input id="mK" type="range" min="1" max="4" value="2"><b id="mKv"></b></label>
@@ -161,7 +159,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="inference">
   <h2>5 · Inference: prefill, decode and the KV cache <span class="tag">LLM Inference Handbook</span></h2>
-  <div class="src">Real thing: <a href="https://handbook.modular.com/llm-inference-basics/what-is-llm-inference/" target="_blank" rel="noopener">Modular — LLM Inference Handbook</a>.</div>
   <p>Inference = <b>prefill</b> (process the whole prompt in parallel) then a <b>decode loop</b> (one new token per step). Without a KV cache, every step re-processes everything so far.</p>
   <div class="row">
     <label>Prompt tokens <input id="iP" type="range" min="4" max="64" value="24"><b id="iPv"></b></label>
@@ -176,7 +173,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="playground">
   <h2>6 · Train a tiny neural network <span class="tag">TensorFlow Playground · 3Blue1Brown</span></h2>
-  <div class="src">Real things: <a href="https://playground.tensorflow.org/" target="_blank" rel="noopener">playground.tensorflow.org</a> · <a href="https://www.3blue1brown.com/?topic=neural-networks" target="_blank" rel="noopener">3Blue1Brown neural networks</a>. This one is a from-scratch MLP (tanh, SGD) running in your browser.</div>
   <div class="row">
     <label>Data <select id="pData"><option value="xor">XOR</option><option value="circle">Circle</option><option value="spiral">Spiral</option></select></label>
     <label>Hidden layers <select id="pLay"><option>1</option><option selected>2</option><option>3</option></select></label>
@@ -191,7 +187,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="features">
   <h2>7 · What do features represent? <span class="tag">Neuronpedia</span></h2>
-  <div class="src">Real thing: <a href="https://www.neuronpedia.org/" target="_blank" rel="noopener">neuronpedia.org</a> hosts real interpretability features (sparse autoencoder latents) with top-activating text, search and steering.</div>
   <p>Interpretability researchers find <b>features</b>: directions inside the model that light up for a concept. Type text; a toy keyword lexicon stands in for the real feature detectors.</p>
   <input id="fIn" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)" value="The Golden Gate Bridge was shrouded in fog, so I wrote a Python function to debug it.">
   <div id="fOut" style="margin-top:10px"></div>
@@ -202,13 +197,12 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="atlas">
   <h2>8 · Embedding map <span class="tag">Embedding Atlas</span></h2>
-  <div class="src">Real thing: <a href="https://apple.github.io/embedding-atlas/" target="_blank" rel="noopener">Apple's Embedding Atlas</a> for exploring large embedding sets with clusters, search and metadata.</div>
   <p>Embeddings place similar things near each other. Below, 48 words with hand-placed 2D positions. Hover to see nearest neighbours (cosine on the 2D vectors); search to highlight; click a point to pin it.</p>
   <div class="row"><input id="aQ" placeholder="search word…" style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><span id="aInfo" class="note" style="margin:0"></span></div>
   <canvas id="acv" width="900" height="460" style="width:100%"></canvas>
 </section>
 </main>
-<footer>Single file, no dependencies. Toy models for intuition — not real LLM internals. Open the linked originals for the real thing.</footer>
+<footer>Single file, no dependencies. Part 1: toy models for intuition, not real LLM internals. Part 2: checked against official documentation on 2026-11-17.</footer>
 <div id="deck">
   <button id="prev">← Previous</button>
   <div id="prog"><i></i></div>
@@ -227,20 +221,6 @@ function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}<
 const SECS=[['tokens','1 · Next-token prediction'],['attention','2 · Self-attention'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
 SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
-
-/* resources */
-const RES=[
-['Transformer Explainer','https://poloclub.github.io/transformer-explainer/','Live GPT-2 in the browser; step through tokens → attention → next token.','tokens'],
-['LLM Visualization','https://bbycroft.net/llm','3D walkthrough of every layer of a small GPT.','attention'],
-['3Blue1Brown','https://www.3blue1brown.com/?topic=neural-networks','Animated lessons: neural nets, backprop, transformers.','playground'],
-['The Illustrated Transformer','https://jalammar.github.io/illustrated-transformer/','Classic walkthrough of Q, K, V and multi-head attention.','attention'],
-['TensorFlow Playground','https://playground.tensorflow.org/','Train and break a small network in the browser.','playground'],
-['Visual Guide to Attention Variants','https://magazine.sebastianraschka.com/p/visual-attention-variants','MHA, GQA, MLA, sparse and hybrid attention compared.','variants'],
-['Visual Guide to Mixture of Experts','https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts','Routers, experts and load balancing in diagrams.','moe'],
-['LLM Inference Handbook','https://handbook.modular.com/llm-inference-basics/what-is-llm-inference/','Prefill, decode, batching, KV cache, serving.','inference'],
-['Neuronpedia','https://www.neuronpedia.org/','Browse and steer interpretable features inside models.','features'],
-['Embedding Atlas (Apple)','https://apple.github.io/embedding-atlas/','Interactive map of embedding clusters and metadata.','atlas']];
-$('#resgrid').innerHTML=RES.map((r,i)=>`<div class="card"><a href="${r[1]}" target="_blank" rel="noopener">${i+1}. ${r[0]}</a><p>${r[2]}</p><p><a href="#${r[3]}" style="font-weight:400">↓ try the toy version</a></p></div>`).join('');
 
 /* 1 tokens */
 const NT=[['mat',5.0],['floor',3.6],['sofa',3.4],['bed',3.0],['roof',2.6],['table',2.4],['moon',0.6],['idea',-0.5],['tax',-1.2],['quickly',-2.0]];
@@ -391,7 +371,449 @@ drawAtlas();
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const CHECKED='2026-11-17';
 /*FW-DATA-START*/
-const FW=[];
+const FW=[
+{id:'langchain',name:'LangChain',group:'Agent frameworks — the LangChain family & Pydantic',
+ tag:'LangChain · Python & TypeScript · MIT · v1.5.0 (Nov 2026)',
+ pitch:'Since v1 (Oct 2025), LangChain is the LangChain team\'s <b>agent harness</b>: <code>create_agent</code> plus one model interface for every provider, tools and middleware, running on LangGraph underneath. It also keeps its integrations for document loaders, splitters, embeddings and vector stores.',
+ concepts:[['Agent (create_agent)','Model + harness: prompt, tools and middleware wired into a loop.','create_agent'],['Models','One chat-model interface across providers, picked with a "provider:model" string.','model='],['Tools','Plain Python functions (or @tool) the model can call.','def get_weather|tools='],['Messages','The conversation in and out; v1 adds standard content_blocks across providers.','messages|content_blocks'],['Middleware','Hooks such as before_model and wrap_tool_call; prebuilt ones for summarisation and human-in-the-loop.','']],
+ flow:[['invoke','You pass a list of messages.'],['before_model','Middleware may trim, summarise or add context.'],['model','The chat model answers or asks for tools.'],['tools','Requested tools run; results are appended as messages.'],['answer','No more tool calls: the last message is the answer.']],
+ loop:'Model → tools → model repeats until the model replies without tool calls. Built as a LangGraph graph, so it inherits persistence and streaming.',loopShort:'model ⇄ tools',
+ lang:'Python',quick:'https://docs.langchain.com/oss/python/langchain/quickstart',
+ code:`from langchain.agents import create_agent
+
+def get_weather(city: str) -> str:
+    """Get weather for a given city."""
+    return f"It's always sunny in {city}!"
+
+agent = create_agent(model="openai:gpt-6.1-sol", tools=[get_weather],
+                     system_prompt="You are a helpful assistant")
+result = agent.invoke(
+    {"messages": [{"role": "user", "content": "What's the weather in San Francisco?"}]})
+print(result["messages"][-1].content_blocks)`,
+ pick:'You want a standard agent quickly, many provider and data integrations, and a clear upgrade path to LangGraph when the flow gets complex.',
+ skip:'You depend on old chains/retrievers tutorials — those moved to <code>langchain-classic</code> in v1.',
+ docs:[['Docs','https://docs.langchain.com/oss/python/langchain/overview'],['GitHub','https://github.com/langchain-ai/langchain'],['PyPI','https://pypi.org/project/langchain/']],
+ status:'v1.0 shipped 2025-10-17 together with LangGraph 1.0. <code>create_agent</code> replaces <code>langgraph.prebuilt.create_react_agent</code>; legacy chains, retrievers and the hub moved to <code>langchain-classic</code>.',
+ fix:'I first called LangChain "the older library of building blocks for documents, retrieval and prompt chains". Its v1 docs present it as an agent harness built on LangGraph; the retrieval integrations remain, the chains moved to langchain-classic.',
+ fit:{py:1,ts:1,multi:1,durable:1,typed:1,rag:1,memory:1,prov:'any'}},
+{id:'langgraph',name:'LangGraph',group:'Agent frameworks — the LangChain family & Pydantic',
+ tag:'LangChain · Python & TypeScript · MIT · v1.2.22 (Nov 2026)',
+ pitch:'A <b>low-level orchestration runtime for long-running, stateful agents</b>. You draw the workflow as a graph of nodes over shared state; it can loop, branch, run nodes in parallel, and checkpoint every step so a run can pause for a human and resume later.',
+ concepts:[['State','Shared data every node reads and updates.','MessagesState'],['Nodes','Functions that do one step and return state updates.','add_node|def mock_llm'],['Edges','Fixed or conditional (a routing function reads state and picks the next node).','add_edge|START|END'],['Reducers','Rules for merging updates into state; without one, a new value replaces the old.',''],['Checkpointer','Saves state at each super-step so runs can resume, pause for humans, and keep memory.','compile']],
+ flow:[['invoke','Initial state goes in at START.'],['super-step','Every node with fresh input runs; nodes in the same step run in parallel.'],['merge','Their updates merge into state via reducers.'],['checkpoint','State is saved (if a checkpointer is configured).'],['route','Edges pick the next nodes; END or no active nodes stops the run.']],
+ loop:'Super-steps repeat while any node has input waiting (Pregel-style message passing).',loopShort:'next super-step',
+ lang:'Python',quick:'https://docs.langchain.com/oss/python/langgraph/quickstart',
+ code:`from langgraph.graph import StateGraph, MessagesState, START, END
+
+def mock_llm(state: MessagesState):
+    return {"messages": [{"role": "ai", "content": "hello world"}]}
+
+graph = StateGraph(MessagesState)
+graph.add_node(mock_llm)
+graph.add_edge(START, "mock_llm")
+graph.add_edge("mock_llm", END)
+graph = graph.compile()
+graph.invoke({"messages": [{"role": "user", "content": "hi!"}]})`,
+ pick:'Several agents or steps share state, the flow has loops and branches, or runs must survive restarts and wait for human approval.',
+ skip:'A single agent with a few tools is all you need — the graph is extra ceremony; <code>create_agent</code> already runs on it.',
+ docs:[['Docs','https://docs.langchain.com/oss/python/langgraph/overview'],['GitHub','https://github.com/langchain-ai/langgraph'],['Persistence','https://docs.langchain.com/oss/python/langgraph/persistence']],
+ status:'v1.0 on 2025-10-17; the prebuilt <code>create_react_agent</code> is superseded by LangChain\'s <code>create_agent</code>.',
+ fit:{py:1,ts:1,multi:2,durable:2,typed:1,memory:1,prov:'any'}},
+{id:'pydantic-ai',name:'Pydantic AI',group:'Agent frameworks — the LangChain family & Pydantic',
+ tag:'Pydantic · Python · MIT · v2.69.0 (Nov 2026)',
+ pitch:'A <b>model-agnostic, type-safe agent framework</b> from the Pydantic team: typed dependencies, typed tools and <b>validated structured output</b>; switching provider is a model-string change. V2 (June 2026) adds <i>capabilities</i>, reusable bundles of tools, hooks and instructions.',
+ concepts:[['Agent','Agent[Deps, Output]: instructions, tools, output type, model and settings in one object.','Agent\\('],['Output type','The validated type a run must end with.','output_type|class Sentiment|BaseModel'],['Tools','Functions the model can call during a run.',''],['Dependencies','Typed dependency injection for instructions, tools and validators.',''],['Models','"provider:model" strings; same code across providers.','openai:'],['Capabilities','V2 primitive: reusable bundles of tools, hooks, instructions and settings.','']],
+ flow:[['run_sync','Your prompt enters the agent graph.'],['UserPromptNode','Builds the request from instructions and history.'],['ModelRequestNode','Calls the model.'],['CallToolsNode','Runs tool calls, or validates the final output against output_type.'],['End','Valid output ends the run; invalid output is sent back for a retry.']],
+ loop:'Model request → tool calls → model request until the output validates. agent.iter() lets you step through the nodes yourself.',loopShort:'until output validates',
+ lang:'Python',quick:'https://pydantic.dev/docs/ai/',
+ code:`from pydantic import BaseModel
+from pydantic_ai import Agent
+
+class Sentiment(BaseModel):
+    label: str
+    score: float
+
+agent = Agent('openai:gpt-6.1-sol', output_type=Sentiment)
+result = agent.run_sync('How are people feeling about the Extract app?')
+print(result.output)
+#> label='positive' score=0.9`,
+ pick:'One agent whose output must be a typed object your code can trust, in a codebase already on Pydantic and type checking.',
+ skip:'You need a big multi-agent graph with checkpointed state — LangGraph is more established there (they can be combined).',
+ docs:[['Docs','https://pydantic.dev/docs/ai/'],['GitHub','https://github.com/pydantic/pydantic-ai'],['Output','https://pydantic.dev/docs/ai/core-concepts/output/']],
+ status:'v1.0 on 2025-09-05, V2.0 on 2026-06-23 with a "harness-first" design. Docs moved from ai.pydantic.dev to pydantic.dev/docs/ai. Releases are very frequent.',
+ fix:'I called it "lighter". The docs don\'t claim that; they pitch it as a typed, extensible, model-agnostic agent loop with durable execution, evals and OpenTelemetry.',
+ fit:{py:1,typed:2,durable:1,multi:1,minimal:1,prov:'any'}},
+{id:'crewai',name:'CrewAI',group:'Agent frameworks — general purpose',
+ tag:'crewAI Inc. · Python 3.10–3.13 · MIT · v1.15.41 (Nov 2026)',
+ pitch:'Define <b>role-playing agents</b> (role, goal, backstory) and <b>tasks</b>, group them into a <b>crew</b>, and let a process run them. In apps, event-driven <b>Flows</b> are now the backbone and crews are units of work inside them.',
+ concepts:[['Agent','A role, a goal and a backstory, plus its own tools.','Agent\\(|role=|goal=|backstory='],['Task','A description and expected_output, assigned to an agent.','Task\\(|expected_output|description='],['Crew','Agents and tasks that work together.','Crew\\('],['Process','Sequential (default) or hierarchical, where a manager agent delegates and checks.','Process'],['Flow','Event-driven workflow (@start / @listen) with typed state that kicks off crews.',''],['Tools','Connect agents to APIs, databases and local tools.','']],
+ flow:[['kickoff','crew.kickoff(inputs) starts the crew.'],['assign','The process picks the next task: in order, or a manager delegates.'],['agent works','The task\'s agent reasons and calls its tools.'],['hand on','Its output becomes context for the next task.'],['result','The last task\'s output is the crew result.']],
+ loop:'Repeats per task. In a Flow, @listen methods fire as earlier steps finish, and each can kick off a crew.',loopShort:'next task',
+ lang:'Python',quick:'https://docs.crewai.com/en/quickstart',
+ code:`from crewai import Agent, Task, Crew, Process
+
+analyst = Agent(role="Data Analyst", goal="Analyze data trends in the market",
+                backstory="An experienced data analyst with a background in economics")
+task = Task(description="Collect recent market data and identify trends.",
+            expected_output="A report summarizing key trends in the market.",
+            agent=analyst)
+crew = Crew(agents=[analyst], tasks=[task], process=Process.sequential)
+result = crew.kickoff(inputs={})
+print(result.raw)`,
+ pick:'You think in "a team of specialists": quick multi-agent prototypes where roles and tasks describe the work well.',
+ skip:'You want fine control over every model call and state transition — the role abstraction hides it.',
+ docs:[['Docs','https://docs.crewai.com/'],['GitHub','https://github.com/crewAIInc/crewAI'],['Flows','https://docs.crewai.com/en/concepts/flows']],
+ status:'v1.0 on 2025-10-20. New projects default to JSONC config (<code>crew.jsonc</code>) and a Flow-first quickstart; the YAML + <code>@CrewBase</code> layout most tutorials show is now <code>--classic</code>. Supports Python below 3.14.',
+ fix:'"Agents by role working as a crew" is right but incomplete: the docs now put Flows at the centre, with crews as steps inside them.',
+ fit:{py:1,multi:2,durable:1,memory:1,typed:1,prov:'any'}},
+{id:'openai-agents',name:'OpenAI Agents SDK',group:'Agent frameworks — general purpose',
+ tag:'OpenAI · Python & TypeScript · MIT · v0.24.0 (Oct 2026)',
+ pitch:'<b>Very few abstractions</b>: agents (an LLM with instructions and tools), <b>handoffs</b> between agents and <b>guardrails</b> on input and output, plus a Runner, sessions and built-in tracing. Other providers work through adapters, but it fits best on OpenAI\'s Responses API.',
+ concepts:[['Agent','An LLM with instructions and tools.','Agent\\('],['Handoffs','One agent passes control to another, or calls it as a tool.',''],['Guardrails','Validate inputs and outputs; a tripwire stops the run.',''],['Runner','Runs the loop: run, run_sync or run_streamed, up to max_turns.','Runner'],['Sessions','Persistent memory of the conversation across runs.',''],['Tracing','Every run is traced for debugging; uploads to OpenAI by default.','']],
+ flow:[['Runner.run','Starts with the first agent.'],['LLM call','The current agent\'s model responds.'],['tool calls','Tools run and results are appended.'],['handoff?','A handoff switches the current agent.'],['final output','Text with no tool calls ends the run.']],
+ loop:'Repeats until final output; exceeding max_turns raises MaxTurnsExceeded.',loopShort:'until final output',
+ lang:'Python',quick:'https://openai.github.io/openai-agents-python/quickstart/',
+ code:`from agents import Agent, Runner
+
+agent = Agent(name="Assistant", instructions="You are a helpful assistant")
+
+result = Runner.run_sync(agent, "Write a haiku about recursion in programming.")
+print(result.final_output)`,
+ pick:'You are on OpenAI models and want small primitives for handoffs between agents, guardrails and tracing out of the box.',
+ skip:'Your main models are elsewhere: adapters (LiteLLM, Any-LLM) are marked beta, and tracing uploads to OpenAI by default.',
+ docs:[['Docs','https://openai.github.io/openai-agents-python/'],['GitHub','https://github.com/openai/openai-agents-python'],['JS/TS','https://openai.github.io/openai-agents-js/']],
+ status:'Still pre-1.0 (package <code>openai-agents</code>, import <code>agents</code>). Newer docs add sandbox agents, realtime/voice agents and sessions.',
+ fix:'"Tied mostly to OpenAI" was too strong: other providers are supported through OpenAI-compatible endpoints and adapters, though OpenAI-hosted tools and default tracing favour OpenAI.',
+ fit:{py:1,ts:1,multi:2,typed:1,memory:1,code:1,minimal:1,prov:'openai'}},
+{id:'claude-agent-sdk',name:'Claude Agent SDK',group:'Agent frameworks — general purpose',
+ tag:'Anthropic · Python & TypeScript · pre-1.0 (Nov 2026)',
+ pitch:'Anthropic\'s SDK that gives you <b>the same tools, agent loop and context management that power Claude Code</b>, as a library. Built-in file, shell and web tools work out of the box; you add your own over MCP and control them with permissions and hooks.',
+ concepts:[['query() / ClaudeSDKClient','query() starts the loop and streams messages; the client keeps a two-way conversation.','query\\('],['Built-in tools','Claude Code\'s Read, Write, Edit, Bash, Glob, web search…','allowed_tools'],['MCP / custom tools','External tools over MCP; Python @tool functions run as in-process MCP servers.',''],['Permissions','Which tools run automatically and which need approval.','permission_mode|allowed_tools'],['Hooks','Your code at lifecycle points: inspect, change or block tool calls.',''],['Sessions','Keep context across exchanges; resume or fork later.','']],
+ flow:[['query','Your prompt and options.'],['Claude','Answers or requests tools.'],['permissions & hooks','Each tool call is checked and may be blocked.'],['tools run','Results go back to Claude.'],['ResultMessage','Final text, cost, usage and session ID.']],
+ loop:'The same loop as Claude Code: repeats until Claude replies without tool calls.',loopShort:'until no tool calls',
+ lang:'Python',quick:'https://code.claude.com/docs/en/agent-sdk/quickstart',
+ code:`import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage
+async def main():
+    async for message in query(
+        prompt="Review utils.py for bugs that would cause crashes. Fix any issues you find.",
+        options=ClaudeAgentOptions(allowed_tools=["Read", "Edit", "Glob"], permission_mode="acceptEdits"),
+    ):
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if hasattr(block, "text"):
+                    print(block.text)
+asyncio.run(main())`,
+ pick:'Your agent works on files and shell commands (coding, ops, research over a folder) and you want a proven loop with permissions built in.',
+ skip:'You need a model-agnostic framework — it runs Claude models.',
+ docs:[['Docs','https://code.claude.com/docs/en/agent-sdk/overview'],['Python','https://github.com/anthropics/claude-agent-sdk-python'],['TypeScript','https://github.com/anthropics/claude-agent-sdk-typescript']],
+ status:'Renamed from the Claude Code SDK in September 2025 (<code>ClaudeCodeOptions</code> → <code>ClaudeAgentOptions</code>). Both packages bundle the Claude Code binary. Python package: MIT; npm: see README; use is under Anthropic\'s Commercial Terms.',
+ fit:{py:1,ts:1,code:2,memory:1,minimal:1,multi:1,prov:'claude'}},
+{id:'ms-agent-framework',name:'Microsoft Agent Framework',group:'Agent frameworks — general purpose',
+ tag:'Microsoft · Python, .NET, Go (preview) · MIT · v1.26.0 (Nov 2026)',
+ pitch:'Microsoft\'s framework for <b>single agents and multi-agent workflows</b>, described by Microsoft as the <b>direct successor to both AutoGen and Semantic Kernel</b>, built by the same teams. Graph workflows have checkpointing and human-in-the-loop.',
+ concepts:[['Agent','An LLM that processes input, calls tools and MCP servers, and responds.','Agent\\('],['Workflows','Graph or functional paths through agents and functions, with checkpoints and human approval.',''],['Chat client','The provider client the agent calls the model through (e.g. Foundry).','FoundryChatClient|client='],['Agent session','Holds the state of one conversation.',''],['Context providers','Supply memory and context to each run.',''],['Middleware','Intercepts agent actions, requests and responses.','']],
+ flow:[['agent.run','Input plus instructions.'],['chat client','Sends the request to the model.'],['tools / MCP','Tool calls run through middleware.'],['response','Returned to you.'],['session','State carried to the next run.']],
+ loop:'For multi-step processes, a Workflow runs agents and functions along an explicit graph instead.',loopShort:'next run / workflow step',
+ lang:'Python',quick:'https://learn.microsoft.com/en-us/agent-framework/overview/agent-framework-overview',
+ code:`import asyncio
+from agent_framework import Agent
+from agent_framework.foundry import FoundryChatClient
+from azure.identity import AzureCliCredential
+async def main():
+    agent = Agent(
+        client=FoundryChatClient(project_endpoint="https://your-foundry-service.services.ai.azure.com/api/projects/your-foundry-project", model="gpt-5.4-mini", credential=AzureCliCredential()),
+        name="HelloAgent",
+        instructions="You are a friendly assistant. Keep your answers brief.",
+    )
+    print(await agent.run("What is the largest city in France?"))
+asyncio.run(main())`,
+ pick:'You are on Azure / .NET, or migrating from AutoGen or Semantic Kernel, and want supported workflows with checkpoints.',
+ skip:'You want the newest AutoGen tutorials to keep working — AutoGen\'s README says it is archived and community-managed.',
+ docs:[['Docs','https://learn.microsoft.com/en-us/agent-framework/'],['GitHub','https://github.com/microsoft/agent-framework']],
+ status:'GA 1.0 on 2026-04-02. Migration guides exist from AutoGen and from Semantic Kernel; Semantic Kernel\'s package still ships releases.',
+ fix:'I said AutoGen and Semantic Kernel "were merged into" it. Microsoft calls it their direct successor; the old repos still exist (Semantic Kernel still releases), and it is not only multi-agent.',
+ fit:{py:1,multi:2,durable:2,memory:1,typed:1,prov:'any'}},
+{id:'google-adk',name:'Google ADK',group:'Agent frameworks — general purpose',
+ tag:'Google · Python, TypeScript, Go, Java, Kotlin · Apache-2.0 · v2.14.1 (Nov 2026)',
+ pitch:'Google\'s open-source, <b>code-first Agent Development Kit</b> for building, evaluating and deploying agents. ADK 2.0 (2026) runs agents, tools and functions as nodes in a <b>graph workflow runtime</b>.',
+ concepts:[['Agent (LlmAgent)','A self-contained unit that acts towards a goal; Agent is an alias of LlmAgent.','Agent\\('],['Tools','Functions, MCP, OpenAPI and built-ins such as google_search.','tools=|def get_current_time'],['Runner','Entry point that orchestrates one user query.',''],['Session / State','Holds history and state for one conversation; the SessionService saves it.',''],['Events','Messages passed between the Runner and the agent logic.',''],['Workflows','Graph, sequential, loop and parallel orchestration of agents and nodes.','']],
+ flow:[['Runner','Receives the user query.'],['agent','Yields an event: a model response or a tool call.'],['commit','The Runner saves the state change via the SessionService.'],['resume','The agent continues with updated state.'],['final event','The answer is returned.']],
+ loop:'The agent pauses after each event until the Runner commits it, then resumes.',loopShort:'event by event',
+ lang:'Python',quick:'https://adk.dev/get-started/python/',
+ code:`# my_agent/agent.py   ->  run with: adk run my_agent   (or: adk web)
+from google.adk.agents.llm_agent import Agent
+
+def get_current_time(city: str) -> dict:
+    """Returns the current time in a specified city."""
+    return {"status": "success", "city": city, "time": "10:30 AM"}
+
+root_agent = Agent(
+    model='gemini-flash-latest', name='root_agent',
+    description='Tells the current time in a specified city.',
+    instruction='You are a helpful assistant. Use get_current_time for city times.',
+    tools=[get_current_time],
+)`,
+ pick:'You are on Gemini or Google Cloud, or need one framework across Python, TypeScript, Go and Java.',
+ skip:'You rely on 1.x patterns: 2.0 changed how runs execute (pin <code>google-adk~=1.0</code> to stay).',
+ docs:[['Docs','https://adk.dev/'],['GitHub','https://github.com/google/adk-python'],['Workflows','https://adk.dev/workflows/']],
+ status:'2.0 GA: Python 2026-05-19, Go 2026-06-30, TypeScript 2026-08-21. Docs moved from google.github.io/adk-docs to adk.dev. In TypeScript, Sequential/Parallel/Loop agents are deprecated.',
+ fit:{py:1,ts:1,multi:2,durable:1,memory:1,prov:'gemini'}},
+{id:'agno',name:'Agno',group:'Agent frameworks — general purpose',
+ tag:'Agno (formerly Phidata) · Python · Apache-2.0 · v3.2.0 (Nov 2026)',
+ pitch:'A Python SDK for <b>agents, teams and workflows</b>, plus <b>AgentOS</b>, a runtime that serves them as an API, MCP server or chat UI. Memory, knowledge, storage and human-in-the-loop are add-ons on the agent. It was renamed from Phidata in early 2025.',
+ concepts:[['Agent','Builds context, calls the model, runs tools, returns a RunOutput.','Agent\\('],['Team','A leader agent delegates to members by role and combines the results.',''],['Workflow','Steps over agents, teams and functions: sequential, parallel, loops, conditions.',''],['Tools','Toolkits, @tool functions and MCP servers.','tools=|HackerNewsTools'],['Knowledge & Memory','Knowledge grounds answers in your files; memory keeps per-user facts across sessions.',''],['AgentOS','"FastAPI for agents": serves agents over HTTP/MCP with a control plane.','']],
+ flow:[['run','agent.run() or print_response().'],['build context','Instructions, history, knowledge and memory.'],['model','The model answers or calls tools.'],['tools','Requested tools run.'],['RunOutput','The final answer, streamed or returned.']],
+ loop:'Model ⇄ tools until the model answers. Teams and Workflows wrap this loop; AgentOS serves it.',loopShort:'model ⇄ tools',
+ lang:'Python',quick:'https://docs.agno.com/agents/building-agents',
+ code:`from agno.agent import Agent
+from agno.models.anthropic import Claude
+from agno.tools.hackernews import HackerNewsTools
+agent = Agent(
+    model=Claude(id="claude-sonnet-4-5"),
+    tools=[HackerNewsTools()],
+    instructions="Write a report on the topic. Output only the report.",
+    markdown=True,
+)
+agent.print_response("Trending startups and products.", stream=True)`,
+ pick:'You want agents with memory and knowledge built in, and a ready runtime to serve them as an API.',
+ skip:'You only want a thin library — Agno now positions itself as a platform (SDK + runtime + control plane).',
+ docs:[['Docs','https://docs.agno.com/'],['GitHub','https://github.com/agno-agi/agno'],['AgentOS','https://docs.agno.com/agent-os/introduction']],
+ status:'Phidata → Agno in January 2025 (the old GitHub repo redirects). v2.0 in September 2025, v3.0 in August 2026 with a storage migration.',
+ fix:'I called it "fast, lightweight". Current official pages describe a "self-managing agent platform": an agent SDK plus the AgentOS runtime. They don\'t use "lightweight".',
+ fit:{py:1,multi:2,memory:2,rag:1,durable:1,prov:'any'}},
+{id:'mastra',name:'Mastra',group:'Agent frameworks — TypeScript',
+ tag:'Kepler Software · TypeScript · Apache-2.0 (except ee/) · @mastra/core 1.83.0 (Nov 2026)',
+ pitch:'A <b>TypeScript framework for AI agents and applications</b>: agents, typed tools, step-by-step <b>workflows</b>, several kinds of <b>memory</b>, <b>evals</b> (called scorers) and a local Studio UI.',
+ concepts:[['Agent','id, instructions, model and tools; runs tools until it has an answer.','new Agent|instructions|model:'],['Tools','createTool with an input schema and execute().',''],['Workflows','Explicit steps: createWorkflow / createStep / .then / .commit.',''],['Memory','Message history, working memory, semantic recall, observational memory.',''],['Evals (scorers)','Model-graded, rule-based and statistical tests of agent output.',''],['Mastra + Studio','new Mastra({agents}) registers everything; Studio is the interactive UI.','new Mastra|getAgentById']],
+ flow:[['generate','agent.generate() or .stream().'],['model','Instructions + input → model.'],['tools','Requested tools run; results go back.'],['answer','Final text or a stop condition.'],['scorers','Optionally score the output.']],
+ loop:'Model ⇄ tools until an answer or stop condition. Workflows run explicit steps instead.',loopShort:'model ⇄ tools',
+ lang:'TypeScript',quick:'https://mastra.ai/docs/agents/overview',
+ code:`import { Agent } from '@mastra/core/agent'
+import { Mastra } from '@mastra/core'
+
+const testAgent = new Agent({
+  id: 'test-agent',
+  name: 'Test Agent',
+  instructions: 'You are a helpful assistant.',
+  model: 'openai/gpt-6.1-sol',
+})
+export const mastra = new Mastra({ agents: { testAgent } })
+
+const res = await mastra.getAgentById('test-agent').generate('Help me organize my day')
+console.log(res.text)`,
+ pick:'Your stack is TypeScript and you want the whole kit — agents, workflows, memory and evals — in one framework.',
+ skip:'You need only model calls and streaming in a web app — the Vercel AI SDK is smaller.',
+ docs:[['Docs','https://mastra.ai/docs'],['GitHub','https://github.com/mastra-ai/mastra'],['Evals','https://mastra.ai/docs/evals/overview']],
+ status:'On 1.x. Directories named <code>ee/</code> use a separate enterprise licence.',
+ fit:{ts:1,multi:1,durable:1,memory:2,rag:1,typed:1,prov:'any'}},
+{id:'vercel-ai',name:'Vercel AI SDK',group:'Agent frameworks — TypeScript',
+ tag:'Vercel · TypeScript · Apache-2.0 · ai 7.0.173 (Nov 2026)',
+ pitch:'<b>The TypeScript toolkit for AI applications and agents</b>: one API for text, structured output and tool calls across providers (Core), a <b>ToolLoopAgent</b>, UI hooks such as useChat, and since v7 a uniform way to run existing harnesses (Claude Code, Codex).',
+ concepts:[['Core (generateText / streamText)','One API for text, structured output and tool calls.','generateText'],['Tools','tool({description, inputSchema, execute}).','tool\\(|inputSchema|execute'],['stopWhen','When the multi-step tool loop ends, e.g. isStepCount(5).','stopWhen|isStepCount'],['ToolLoopAgent','A class that handles the tool loop, context and stop conditions.',''],['AI SDK UI','Framework-agnostic hooks like useChat for chat UIs.',''],['Harnesses','HarnessAgent runs established agent harnesses behind one API.','']],
+ flow:[['generateText','Model + tools + prompt.'],['step','One model generation.'],['tool calls','Tools execute; outputs are appended.'],['stopWhen?','Check the stop condition.'],['result','result.text and per-step details.']],
+ loop:'Steps repeat until the model stops requesting tools or stopWhen is met.',loopShort:'next step',
+ lang:'TypeScript',quick:'https://ai-sdk.dev/docs/ai-sdk-core/tools-and-tool-calling',
+ code:`import { generateText, tool, isStepCount } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: { weather: tool({ description: 'Get the weather in a location',
+    inputSchema: z.object({ location: z.string() }),
+    execute: async ({ location }) => ({ location, temperature: 72 }) }) },
+  stopWhen: isStepCount(5),
+  prompt: 'What is the weather in San Francisco?',
+});
+console.log(result.text);`,
+ pick:'A TypeScript web app or Node server that needs streaming, tool calls and chat UI with any provider.',
+ skip:'You copy tutorials written for v5/v6: v7 renamed stepCountIs → isStepCount, onFinish → onEnd, system → instructions, and requires Node 22 and ESM.',
+ docs:[['Docs','https://ai-sdk.dev/docs/introduction'],['GitHub','https://github.com/vercel/ai'],['Agents','https://ai-sdk.dev/docs/agents/overview']],
+ status:'7.x is current; the 6.x line is still patched.',
+ fix:'"Model calls, streaming and tool calls for web apps" undersold it: it also builds agents (ToolLoopAgent, HarnessAgent) and structured output, and runs in plain Node servers too.',
+ fit:{ts:1,typed:1,minimal:1,multi:1,prov:'any'}},
+{id:'smolagents',name:'smolagents',group:'Agent frameworks — specialised',
+ tag:'Hugging Face · Python · Apache-2.0 · v1.26.0 (May 2026)',
+ pitch:'A minimal library — the agent logic is <b>about 1,000 lines</b> — whose flagship <b>CodeAgent writes its actions as Python code</b>, which is then executed (ideally in a sandbox). A classic JSON ToolCallingAgent is included too.',
+ concepts:[['CodeAgent','Writes each action as a Python snippet that gets executed.','CodeAgent'],['ToolCallingAgent','The classic alternative: JSON tool calls.',''],['Tool','@tool function or Tool subclass; also from MCP, LangChain or the Hub.','WebSearchTool|tools='],['Model','Model-agnostic wrappers: InferenceClientModel, LiteLLMModel, OpenAIModel…','InferenceClientModel|model'],['Memory','Task and step logs, fed back to the model each step.',''],['Managed agents','Agents handed to a manager agent for hierarchies.','']],
+ flow:[['run','The task goes into memory.'],['think','The model writes Python code as its action.'],['execute','The code runs (local executor or a sandbox).'],['observe','Logs and outputs go back into memory.'],['final_answer','Calling final_answer() ends the run.']],
+ loop:'ReAct steps repeat until final_answer or max steps.',loopShort:'ReAct step',
+ lang:'Python',quick:'https://github.com/huggingface/smolagents#quick-demo',
+ code:`# pip install "smolagents[toolkit]"
+from smolagents import CodeAgent, WebSearchTool, InferenceClientModel
+model = InferenceClientModel()
+agent = CodeAgent(tools=[WebSearchTool()], model=model, stream_outputs=True)
+agent.run("How many seconds would it take for a leopard at full speed to run through Pont des Arts?")`,
+ pick:'You want to read the whole framework in an afternoon, or your tasks benefit from the agent writing code (loops, maths, chaining tools).',
+ skip:'You can\'t sandbox execution — the README warns the local executor is not a security sandbox.',
+ docs:[['Docs','https://huggingface.co/docs/smolagents/index'],['GitHub','https://github.com/huggingface/smolagents'],['Guided tour','https://huggingface.co/docs/smolagents/guided_tour']],
+ status:'No release since 1.26.0 (2026-05-29), though commits continue.',
+ fit:{py:1,minimal:2,code:1,multi:1,prov:'any'}},
+{id:'atomic-agents',name:'Atomic Agents',group:'Agent frameworks — specialised',
+ tag:'Eigenwise · Python 3.12+ · MIT · v2.16.0 (Nov 2026)',
+ pitch:'A lightweight, modular framework where <b>every agent and tool has typed Pydantic input and output schemas</b>. Built on Instructor; pipelines are plain Python that pass one component\'s output schema into the next one\'s input.',
+ concepts:[['AtomicAgent + AgentConfig','The agent, typed by its schemas: AtomicAgent[In, Out].','AtomicAgent|AgentConfig'],['Input/Output schemas','Pydantic schemas that validate what goes in and out.','Schema'],['SystemPromptGenerator','Builds the system prompt from background, steps and output instructions.',''],['ChatHistory','The agent\'s conversation memory.','ChatHistory'],['Context providers','Inject dynamic context into the system prompt at run time.',''],['BaseTool','A tool with its own typed schemas.','']],
+ flow:[['run(input)','A validated input schema.'],['prompt','System prompt + context providers + history.'],['LLM via Instructor','The model is forced into the output schema.'],['validate','A typed output object comes back.'],['chain','Feed it into the next agent or tool\'s input.']],
+ lang:'Python',quick:'https://eigenwise.github.io/atomic-agents/llms-docs.txt',
+ code:`import instructor
+from openai import OpenAI
+from atomic_agents import AtomicAgent, AgentConfig, BasicChatInputSchema, BasicChatOutputSchema
+from atomic_agents.context import ChatHistory
+client = instructor.from_openai(OpenAI())
+agent = AtomicAgent[BasicChatInputSchema, BasicChatOutputSchema](
+    config=AgentConfig(client=client, model="gpt-5.6-terra", history=ChatHistory())
+)
+response = agent.run(BasicChatInputSchema(chat_message="Tell me about atomic agents framework"))
+print(response.chat_message)`,
+ pick:'You want small, predictable components with explicit typed contracts, wired together in your own code.',
+ skip:'You want autonomous multi-step tool loops out of the box — orchestration is up to you.',
+ docs:[['Docs','https://eigenwise.github.io/atomic-agents/'],['GitHub','https://github.com/Eigenwise/atomic-agents']],
+ status:'v2.0 (July 2025) renamed BaseAgent → AtomicAgent and flattened imports. The project moved from BrainBlend-AI to Eigenwise; old docs URLs return 404.',
+ fit:{py:1,typed:2,minimal:1,prov:'any'}},
+{id:'letta',name:'Letta',group:'Agent frameworks — specialised',
+ tag:'Letta (formerly MemGPT) · TypeScript Agent SDK · Apache-2.0 · 0.8.90 (Nov 2026)',
+ pitch:'<b>Stateful agents</b> with an identity and <b>long-term memory that persists across conversations, models and machines</b>. Memory now lives in <b>MemFS</b>, a git-backed set of Markdown files the agent reads and edits itself.',
+ concepts:[['Stateful agent','A persistent identity with its own memory, model, tools and history.','createAgent'],['MemFS','Long-term memory in a git repo, checked out as Markdown files.',''],['Memory blocks','Labelled memories (persona, human); root files load into every prompt.','persona'],['Conversation','A thread on an agent; many per agent, sharing its memory.',''],['Session','The live connection used to send and stream.','createSession|session\\.'],['Dreaming','Background reflection that improves the agent\'s memory.','']],
+ flow:[['createAgent','Once: identity + memory.'],['session','Open or resume a session.'],['send','Your message.'],['turn','Root memory files are in the prompt; tools and memory edits happen.'],['stream','Reasoning, messages and tool results stream back.']],
+ loop:'Every later session starts from the memory the agent built up.',loopShort:'memory carries over',
+ lang:'TypeScript',quick:'https://docs.letta.com/agent-sdk/quickstart',
+ code:`import { LettaAgentClient } from "@letta-ai/letta-agent-sdk";
+const client = new LettaAgentClient({ backend: "cloud", apiKey: process.env.LETTA_API_KEY });
+const agentId = await client.createAgent({
+  persona: "You are Nora, a research analyst who tracks our competitors.",
+});
+await using session = client.createSession(agentId);
+await session.send("What changed since last week?");
+for await (const message of session.stream()) {
+  if (message.type === "assistant") process.stdout.write(message.content);
+}`,
+ pick:'The agent must remember users and past work over weeks, and you want memory it manages itself.',
+ skip:'You need a Python SDK: the Agent SDK is TypeScript-only now; Python apps talk to the App Server protocol directly.',
+ docs:[['Docs','https://docs.letta.com'],['GitHub','https://github.com/letta-ai/letta-code'],['MemFS','https://docs.letta.com/concepts/memfs']],
+ status:'Re-platformed in 2025–2026: source moved to <code>letta-code</code>, the V1 Python API server was retired to an archive branch, and the PyPI package <code>letta</code> now installs the Letta Code CLI.',
+ fit:{ts:1,memory:2,prov:'any'}},
+{id:'openhands',name:'OpenHands (Software Agent SDK)',group:'Agent frameworks — specialised',
+ tag:'OpenHands · Python SDK · MIT · openhands-sdk 1.62.0 (Nov 2026)',
+ pitch:'An open-source <b>SDK and self-hosted platform for software-engineering agents</b>. The SDK gives you an agent with terminal and file-editor tools working in a local, Docker or remote <b>workspace</b>.',
+ concepts:[['Agent','Runs the reasoning–action loop.','Agent\\('],['Conversation','Holds state and is the entry point: send_message, run.','Conversation|send_message|\\.run'],['LLM','Provider-agnostic model interface with retries and telemetry.','LLM\\('],['Tool system','Typed Action / Observation / Executor classes, plus MCP.','TerminalTool|FileEditorTool'],['Workspace','Where tools run: local, Docker or remote.','workspace='],['Events','Typed events for actions, observations and messages.','']],
+ flow:[['send_message','The task goes into the Conversation.'],['LLM','Picks the next action.'],['tool in workspace','E.g. run a shell command or edit a file.'],['observation','The result goes back to the agent.'],['done','The LLM signals completion.']],
+ loop:'Action → observation repeats until the LLM signals it is done.',loopShort:'action → observation',
+ lang:'Python',quick:'https://docs.openhands.dev/sdk/getting-started.md',
+ code:`import os
+from openhands.sdk import LLM, Agent, Conversation, Tool
+from openhands.tools.terminal import TerminalTool
+from openhands.tools.file_editor import FileEditorTool
+
+llm = LLM(model="anthropic/claude-sonnet-4-5-20250929", api_key=os.getenv("LLM_API_KEY"))
+agent = Agent(llm=llm, tools=[Tool(name=TerminalTool.name), Tool(name=FileEditorTool.name)])
+
+conversation = Conversation(agent=agent, workspace=os.getcwd())
+conversation.send_message("Write 3 facts about the current project into FACTS.txt.")
+conversation.run()`,
+ pick:'You are building a coding agent and want sandboxed workspaces (Docker or remote) with any model provider.',
+ skip:'Your agent never touches code or a shell — a general framework is simpler.',
+ docs:[['SDK docs','https://docs.openhands.dev/sdk'],['SDK GitHub','https://github.com/OpenHands/software-agent-sdk'],['Agent Canvas','https://github.com/OpenHands/OpenHands']],
+ status:'The project has split: the SDK lives in <code>software-agent-sdk</code>; the main repo is now <b>Agent Canvas</b>, a self-hosted control centre that also runs Claude Code, Codex, Gemini and others. The old OpenHands CLI is no longer maintained.',
+ fit:{py:1,code:2,prov:'any'}},
+{id:'llamaindex',name:'LlamaIndex',group:'RAG, pipelines & prompt optimisation',
+ tag:'LlamaIndex · Python · MIT · v0.14.26 (Nov 2026)',
+ pitch:'A <b>toolkit for agents and RAG over your own data</b>: data connectors, indexes and query engines, agents that can use a query engine as a tool, and event-driven <b>workflows</b>. The company now centres on document parsing (LlamaParse).',
+ concepts:[['Agents','LLM assistants that use tools; a RAG query engine can be one of them.','FunctionAgent'],['Workflows','Event-driven multi-step processes with branching, retries and human review.',''],['Data connectors','Load APIs, databases and PDFs into Documents.',''],['Indexes & vector stores','Structure data for retrieval, e.g. VectorStoreIndex.',''],['Query & chat engines','Answer questions over an index.',''],['Tools','Plain functions the agent can call.','def multiply|tools=']],
+ flow:[['load','Documents from your sources.'],['index','Chunk, embed and store them.'],['agent.run','The LLM picks a tool, e.g. the query engine.'],['retrieve','Relevant chunks come back.'],['answer','The LLM writes the answer from them.']],
+ loop:'The agent runs as an async workflow: tool calls repeat until it can answer.',loopShort:'until answered',
+ lang:'Python',quick:'https://developers.llamaindex.ai/python/framework/getting_started/starter_example/',
+ code:`import asyncio
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.llms.openai import OpenAI
+
+def multiply(a: float, b: float) -> float:
+    """Multiply two numbers."""
+    return a * b
+
+agent = FunctionAgent(tools=[multiply], llm=OpenAI(model="gpt-4o-mini"))
+
+async def main():
+    print(await agent.run("What is 1234 * 4567?"))
+asyncio.run(main())`,
+ pick:'Your problem is "answer from my documents": many loaders, index types and parsing (LlamaParse) for messy PDFs.',
+ skip:'You need TypeScript — LlamaIndexTS is archived.',
+ docs:[['Docs','https://developers.llamaindex.ai/python/framework/'],['GitHub','https://github.com/run-llama/llama_index'],['Workflows','https://developers.llamaindex.ai/python/llamaagents/workflows/']],
+ status:'Docs moved to developers.llamaindex.ai. Workflows are a separate package (llama-index-workflows 2.x). Still 0.14.x.',
+ fix:'"Strongest for RAG" was my comparison, not an official claim. Official framing: a toolkit for RAG and agents over your data, from the makers of LlamaParse.',
+ fit:{py:1,rag:2,multi:1,durable:1,prov:'any'}},
+{id:'haystack',name:'Haystack',group:'RAG, pipelines & prompt optimisation',
+ tag:'deepset · Python · Apache-2.0 · v3.5.0 (Nov 2026)',
+ pitch:'Build production LLM apps from <b>components</b> wired into <b>pipelines</b> or used by <b>agents</b>. RAG and search are the classic use; 3.0 (July 2026) made agents a headline feature.',
+ concepts:[['Component','A building block with a run() method; its parameters are inputs, its return value outputs.','ComponentTool|OpenAIChatGenerator'],['Pipeline','A graph you wire yourself with add_component and connect. Predictable by design.',''],['Document Store','Holds your documents; retrievers query it. Not a pipeline component itself.',''],['Agent','A chat generator plus tools and a system prompt, with hooks; can sit inside a pipeline.','Agent\\('],['Tools','Functions or components (ComponentTool) the agent may call.','tools=|ComponentTool']],
+ flow:[['run','Inputs go to the first components.'],['retrieve','A retriever fetches documents from the store.'],['prompt builder','Builds the prompt from the question and documents.'],['chat generator','The model writes the answer.'],['output','Each component\'s outputs flow along its connections.']],
+ loop:'A pipeline runs in graph order. An Agent instead loops: chat generator → tool calls → results, until no more tools are called.',loopShort:'(agent) until no tool calls',
+ lang:'Python',quick:'https://docs.haystack.deepset.ai/docs/get-started',
+ code:`from haystack.components.agents import Agent
+from haystack.components.generators.chat import OpenAIChatGenerator
+from haystack.dataclasses import ChatMessage
+from haystack.tools import ComponentTool
+from haystack_integrations.components.websearch.serperdev import SerperDevWebSearch
+agent = Agent(
+    chat_generator=OpenAIChatGenerator(model="gpt-4o-mini"),
+    tools=[ComponentTool(component=SerperDevWebSearch())],
+    system_prompt="You are a helpful assistant that can search the web for information.",
+)
+result = agent.run(messages=[ChatMessage.from_user("What is Haystack AI?")])
+print(result["last_message"].text)`,
+ pick:'Search or RAG in production, where you want explicit, inspectable pipelines and lots of document-store integrations.',
+ skip:'You copy 2.x tutorials: 3.0 removed ToolInvoker and the legacy generators and moved 30 components to separate packages.',
+ docs:[['Docs','https://docs.haystack.deepset.ai/docs/intro'],['GitHub','https://github.com/deepset-ai/haystack'],['3.0 migration','https://docs.haystack.deepset.ai/docs/migration']],
+ status:'3.0.0 on 2026-07-20: agent hooks, human-in-the-loop as a confirmation hook, one Pipeline class for sync/async/streaming. The example\'s web-search component now lives in <code>serperdev-haystack</code>.',
+ fix:'"Production RAG and search pipelines" is too narrow: since 3.0 Haystack positions itself for production agents as well.',
+ fit:{py:1,rag:2,multi:1,typed:0,prov:'any'}},
+{id:'dspy',name:'DSPy',group:'RAG, pipelines & prompt optimisation',
+ tag:'Stanford NLP · Python · MIT · v3.5.0 (Nov 2026)',
+ pitch:'<b>"Programming — rather than prompting — language models."</b> You declare each step as a typed <b>signature</b> and compose <b>modules</b>; an optional <b>optimizer</b> then tunes the prompts (and even weights) against your metric and examples.',
+ concepts:[['Signature','A task as typed input and output fields, instead of a hand-written prompt.','Signature|InputField|OutputField'],['Module','How a signature runs: Predict, ChainOfThought, ReAct…; modules compose.','ChainOfThought'],['LM','dspy.LM("provider/model"), set with dspy.configure.','dspy.LM|configure'],['Adapter','Turns a signature into a prompt and parses the reply (XMLAdapter by default in 3.5).',''],['Optimizer','Given a metric and examples, compile() tunes instructions, demos or weights (GEPA, MIPROv2…).','optimizer|GEPA|compile']],
+ flow:[['call module','extract(email=…)'],['adapter','Formats the signature into an LM request.'],['LM','The model replies.'],['parse','The adapter turns the reply into typed output fields.'],['(optimise)','Optional: an optimizer runs the program on examples and rewrites its prompts.']],
+ loop:'Optimisation is a separate, opt-in step: compile against a metric, save the program, reload it.',loopShort:'compile → save → reuse',
+ lang:'Python',quick:'https://dspy.ai/',
+ code:`import dspy
+dspy.configure(lm=dspy.LM("openai/gpt-5.4-nano"))
+class ExtractEvent(dspy.Signature):
+    """Extract event details from an email."""
+    email: str = dspy.InputField()
+    event_name: str = dspy.OutputField()
+    date: str = dspy.OutputField()
+extract = dspy.ChainOfThought(ExtractEvent)
+print(extract(email="Team offsite on March 3 in Lisbon"))
+# optimizer = dspy.GEPA(metric=accuracy, auto="medium")
+# optimized = optimizer.compile(extract, trainset=labeled_emails)`,
+ pick:'You have a metric and labelled examples, and prompt-tweaking by hand has stopped scaling.',
+ skip:'You have no way to measure quality yet — the optimizers need a metric to work.',
+ docs:[['Docs','https://dspy.ai/'],['GitHub','https://github.com/stanfordnlp/dspy'],['Optimizers','https://dspy.ai/learn/optimization/optimizers/']],
+ status:'3.5.0 (2026-11-10) replaced LiteLLM with bundled lm15 engines, made XMLAdapter the default and reworked ReAct; the upgrade guide says to re-evaluate and recompile optimized programs.',
+ fix:'"It optimizes the prompts for you" overstated it: optimisation is opt-in. You supply a metric and training examples and call compile(); it can tune weights too.',
+ fit:{py:1,optimize:2,typed:2,rag:1,prov:'any'}},
+{id:'no-framework',name:'No framework: your own loop',group:'No framework',
+ tag:'any language · shown with the Anthropic Python SDK',
+ pitch:'Several 2026 guides argue the framework matters less than <b>evaluation, observability and tool design</b>. The core agent loop is about ten lines over a model provider\'s tool-use API, so many teams write it themselves and keep full control.',
+ concepts:[['Request','model, max_tokens, tools and the running messages list, sent every turn.','messages.create'],['Tool definition','name, description and a JSON Schema for input; strict: true enforces the schema.','tools='],['tool_use block','The model asks for a tool: {id, name, input}, with stop_reason "tool_use".','tool_use'],['tool_result block','Your answer: {tool_use_id, content}, sent back in a user message.','tool_result'],['stop_reason','Continue while "tool_use"; anything else (usually "end_turn") ends the loop.','stop_reason']],
+ flow:[['send','messages + tools → messages.create'],['check','stop_reason == "tool_use"?'],['run tools','Execute each tool_use block yourself.'],['send results','Append tool_result blocks as a user message.'],['done','Any other stop_reason: print the text.']],
+ loop:'Repeat while stop_reason is "tool_use". Server tools (e.g. web search) loop on Anthropic\'s side instead; "pause_turn" means re-send to continue.',loopShort:'while tool_use',
+ lang:'Python',quick:'https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview',
+ code:`import anthropic
+client = anthropic.Anthropic()
+messages = [{"role": "user", "content": "What's the weather in San Francisco?"}]
+while True:  # tools = [...] as in docs; run_tool() is your dispatcher
+    resp = client.messages.create(model="claude-opus-5-5", max_tokens=1024, tools=tools, messages=messages)
+    messages.append({"role": "assistant", "content": resp.content})
+    if resp.stop_reason != "tool_use":
+        break
+    results = [{"type": "tool_result", "tool_use_id": b.id, "content": run_tool(b.name, b.input)}
+               for b in resp.content if b.type == "tool_use"]
+    messages.append({"role": "user", "content": results})
+print(next(b.text for b in resp.content if b.type == "text"))`,
+ pick:'One agent, a handful of tools, and you want to see and own every line — plus your own evals and tracing.',
+ skip:'You need persistence, human approval steps or many agents — you would end up rebuilding a framework. The SDK\'s built-in tool runner is a middle ground.',
+ docs:[['Tool use overview','https://platform.claude.com/docs/en/agents-and-tools/tool-use/overview'],['Handle tool calls','https://platform.claude.com/docs/en/agents-and-tools/tool-use/handle-tool-calls'],['Tutorial','https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent']],
+ fit:{py:1,ts:1,minimal:2,typed:1,prov:'any'}},
+];
 /*FW-DATA-END*/
 function fwSection(f){
   const lines=f.code.split('\n');
@@ -454,7 +876,6 @@ const TIPS={
 '#prev':'Previous slide. Shortcut: ← (ignored while a slider or text box has focus).',
 '#next':'Next slide. Shortcut: → (ignored while a slider or text box has focus).',
 '#prog':'How far through the deck you are.',
-'#resgrid':'Each card title opens the original resource in a new tab; "try the toy version" jumps to the matching slide.',
 '#temp':'Temperature divides every logit before softmax. Below 1 sharpens the distribution (more predictable); above 1 flattens it (more random). Drag and watch the bars.',
 '#topk':'Keep only the k highest-scoring tokens, zero the rest, then renormalise. k = 1 is greedy decoding.',
 '#sample':'Draw one token at random from the bars, using the current temperature and top-k. Press repeatedly to see the randomness.',
@@ -499,7 +920,6 @@ const TIPS={
 Object.entries(TIPS).forEach(([s,t])=>{const el=$(s);if(!el)return;const host=el.matches('input,select')&&el.closest('label')||el;host.dataset.tip=t;el.setAttribute('aria-description',t)});
 $$('main .fwplay').forEach(b=>b.dataset.tip='Animate one run step by step. Each box lights up in order with a one-line explanation.');
 $$('main .fwcopy').forEach(b=>b.dataset.tip='Copy the example to the clipboard. It is a sketch adapted from the quickstart: install the package and set an API key first.');
-$$('main .card a[href^="#"]').forEach(a=>a.dataset.tip='Jump to the slide with the toy version of this resource.');
 const tip=$('#tip');let tipEl=null;
 function placeTip(x,y){const r=tip.getBoundingClientRect();let L=x+14,T=y+18;if(L+r.width>innerWidth-8)L=innerWidth-r.width-8;if(T+r.height>innerHeight-60)T=y-r.height-12;tip.style.left=Math.max(8,L)+'px';tip.style.top=Math.max(8,T)+'px'}
 function showTip(el,x,y){tipEl=el;tip.textContent=el.dataset.tip;tip.classList.add('on');placeTip(x,y)}
@@ -508,7 +928,7 @@ document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]'
 document.addEventListener('mousemove',e=>{if(tipEl)placeTip(e.clientX,e.clientY)});
 document.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();showTip(el,r.left,r.bottom)}});
 document.addEventListener('focusout',hideTip);
-{const ctl=$$('header button,header select,#deck button,main button,main select,main input,main canvas,#atok,#amat,#resgrid,main .concept,main .flow .st');
+{const ctl=$$('header button,header select,#deck button,main button,main select,main input,main canvas,#atok,#amat,main .concept,main .flow .st');
  const n=ctl.filter(e=>e.closest('[data-tip]')).length;$('#tipcov').textContent=`Tooltips cover ${n} of ${ctl.length} interactive elements (${Math.round(n/ctl.length*100)}%).`}
 
 /* ================= slide deck ================= */

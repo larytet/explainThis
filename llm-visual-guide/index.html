@@ -100,7 +100,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 <main>
 <section id="intro" data-title="Start here" data-group="How an LLM works">
   <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
-  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then ten tiny, deterministic toys: next-token sampling, the goal of attention, attention, the KV cache, mixture of experts, inference, training, features, embeddings and how one model handles many languages. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
+  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then ten tiny, deterministic toys: next-token sampling, the goal of attention, attention, how one model handles many languages, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
   <div class="two">
     <div class="pick"><b>Move along</b><br>Use <b>Next →</b> / <b>← Previous</b> at the bottom, the arrow keys, or the slide menu at the top.</div>
     <div class="pick"><b>Get help on anything</b><br>Hover (or tab to) any slider, button, list or diagram box to see what it does and how.</div>
@@ -167,6 +167,22 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
   <div id="atok"></div>
   <div id="amat" style="overflow:auto;margin-top:8px"></div>
   <div class="note" id="anote"></div>
+</section>
+
+<section id="langs">
+  <h2>2c · One model, many languages <span class="tag">tokenisation · data</span></h2>
+  <p>The same transformer, with the same next-token prediction and the same attention, serves every human language and code. Nothing in the architecture is English-specific. What differs is <b>how text is cut into tokens</b> and <b>how much training text exists</b>. Below, one sentence in eight languages runs through two toy tokenizers.</p>
+  <div class="row">
+    <label>Tokenizer <select id="lTok"><option value="0" selected>English-heavy (toy)</option><option value="1">Multilingual (toy)</option></select></label>
+    <label>Show tokens for <select id="lShow"></select></label>
+  </div>
+  <div id="lChips" style="min-height:40px"></div>
+  <div class="bars" id="lBars"></div>
+  <div class="two" style="margin-top:10px">
+    <div class="pick"><b>What stays the same</b><br>• One model, one shared vocabulary, one set of weights for all languages.<br>• Attention learns word order from data: verb-second (English), verb-last (Japanese) and free order (Latin) just give different attention patterns.<br>• Concepts are shared: "cat", "Katze" and "猫" land near each other in embedding space, so skills learned in one language often transfer.</div>
+    <div class="pick"><b>What differs</b><br>• <b>Tokenisation:</b> badly covered languages need more tokens for the same meaning → slower, costlier, less fits in the context.<br>• <b>Morphology:</b> Finnish "matolla" = "on the mat"; Russian nouns change form by case. More word forms to learn.<br>• <b>Data:</b> English has trillions of tokens of text, many languages a thousandth of that or less. The biggest real gap.<br>• <b>Code</b> is just another token sequence, with the bonus that output can be checked by running it.</div>
+  </div>
+  <div class="note" id="lNote"></div>
 </section>
 
 <section id="variants">
@@ -244,22 +260,6 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
   <canvas id="acv" width="900" height="460" style="width:100%"></canvas>
 </section>
 
-<section id="langs">
-  <h2>9 · One model, many languages <span class="tag">tokenisation · data</span></h2>
-  <p>The same transformer, with the same next-token prediction and the same attention, serves every human language and code. Nothing in the architecture is English-specific. What differs is <b>how text is cut into tokens</b> and <b>how much training text exists</b>. Below, one sentence in eight languages runs through two toy tokenizers.</p>
-  <div class="row">
-    <label>Tokenizer <select id="lTok"><option value="0" selected>English-heavy (toy)</option><option value="1">Multilingual (toy)</option></select></label>
-    <label>Show tokens for <select id="lShow"></select></label>
-  </div>
-  <div id="lChips" style="min-height:40px"></div>
-  <div class="bars" id="lBars"></div>
-  <div class="two" style="margin-top:10px">
-    <div class="pick"><b>What stays the same</b><br>• One model, one shared vocabulary, one set of weights for all languages.<br>• Attention learns word order from data: verb-second (English), verb-last (Japanese) and free order (Latin) just give different attention patterns.<br>• Concepts are shared: "cat", "Katze" and "猫" land near each other in embedding space, so skills learned in one language often transfer.</div>
-    <div class="pick"><b>What differs</b><br>• <b>Tokenisation:</b> badly covered languages need more tokens for the same meaning → slower, costlier, less fits in the context.<br>• <b>Morphology:</b> Finnish "matolla" = "on the mat"; Russian nouns change form by case. More word forms to learn.<br>• <b>Data:</b> English has trillions of tokens of text, many languages a thousandth of that or less. The biggest real gap.<br>• <b>Code</b> is just another token sequence, with the bonus that output can be checked by running it.</div>
-  </div>
-  <div class="note" id="lNote"></div>
-</section>
-
 </main>
 <footer>Single file, no dependencies. Part 1: toy models for intuition, not real LLM internals. Part 2: checked against official documentation on 2026-11-17.</footer>
 <div id="deck">
@@ -277,7 +277,7 @@ function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294
 function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}</span><span><i style="width:${Math.max(0,Math.min(100,r.v*100))}%;${r.c?'background:'+r.c:''}"></i></span><span>${fmt?fmt(r):(r.v*100).toFixed(1)+'%'}</span></div>`).join('')}
 
 /* theme */
-const SECS=[['tokens','1 · Next-token prediction'],['attn-goal','2a · Self-attention: the goal'],['attention','2b · Self-attention: Q, K, V in action'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map'],['langs','9 · One model, many languages']];
+const SECS=[['tokens','1 · Next-token prediction'],['attn-goal','2a · Self-attention: the goal'],['attention','2b · Self-attention: Q, K, V in action'],['langs','2c · One model, many languages'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
 SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
 

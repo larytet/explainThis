@@ -100,7 +100,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 <main>
 <section id="intro" data-title="Start here" data-group="How an LLM works">
   <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
-  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then eight tiny, deterministic toys: next-token sampling, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
+  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then nine tiny, deterministic toys: next-token sampling, the goal of attention, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
   <div class="two">
     <div class="pick"><b>Move along</b><br>Use <b>Next →</b> / <b>← Previous</b> at the bottom, the arrow keys, or the slide menu at the top.</div>
     <div class="pick"><b>Get help on anything</b><br>Hover (or tab to) any slider, button, list or diagram box to see what it does and how.</div>
@@ -142,8 +142,23 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
   <div class="note">Low temperature → the top token dominates (near-greedy). High temperature → the distribution flattens. Top-k zeroes out everything below rank k, then renormalises.</div>
 </section>
 
+<section id="attn-goal">
+  <h2>2a · Self-attention: the goal <span class="tag">why Q, K and V exist</span></h2>
+  <p>A word's embedding means the same thing in every sentence, but meaning depends on context. <b>The goal of self-attention: let each token update its own vector with information pulled from the other tokens that matter to it.</b> Change the last word below and watch which noun gets pulled in.</p>
+  <div style="font-size:16px;margin:8px 0">The <b class="tok" id="gA">animal</b> didn't cross the <b class="tok" id="gS">street</b> because it was too <select id="gWord"><option value="0" selected>tired</option><option value="1">wide</option></select></div>
+  <div class="row">
+    <label>Query strength <input id="gStr" type="range" min="0" max="3" step="0.1" value="1"><b id="gStrv">1.0</b></label>
+  </div>
+  <div class="two">
+    <div class="pick"><b>Q · query</b> = the search: "what am I looking for?"<br><b>K · key</b> = the label: "what do I offer, how do I get found?"<br><b>V · value</b> = the content: "what I hand over if chosen".<br><span class="meta">Like a library: your search terms (Q) are matched against catalogue entries (K), and you take home the books' text (V).</span></div>
+    <div class="pick" id="gCalc" style="font-family:ui-monospace,monospace;font-size:12.5px;white-space:pre-line"></div>
+  </div>
+  <div class="bars" id="gBars"></div>
+  <div class="note">Why does the <i>last</i> word ask the question, not "it"? With the causal mask a token only sees the past, so "it" cannot see "tired" yet. The word that settles the meaning looks back and asks "what can be tired?" (or "what can be wide?"). Why are K and V separate? What makes a token <i>relevant</i> (it is something that can get tired) differs from what you want to <i>take</i> from it (what an animal is). Query strength 0 → every score is 0 → a plain average: no preference. Toy numbers with 2-dimensional vectors, and only the two nouns are scored to keep the arithmetic small. The next slide runs the same mechanism over the whole sentence, with several heads and the causal mask.</div>
+</section>
+
 <section id="attention">
-  <h2>2 · Self-attention: Q, K and V <span class="tag">Illustrated Transformer · LLM Visualization</span></h2>
+  <h2>2b · Self-attention: Q, K and V in action <span class="tag">Illustrated Transformer · LLM Visualization</span></h2>
   <p>Each token makes a <b>query</b> ("what am I looking for?"), a <b>key</b> ("what do I contain?") and a <b>value</b> ("what I hand over"). Weights = softmax(Q·K / √d), masked so a token only sees the past. Click a token to see where it looks. Three hand-made "heads" show that heads specialise.</p>
   <div class="row">
     <label>Head <select id="head"><option value="0">Head A — previous token</option><option value="1" selected>Head B — pronoun → referent</option><option value="2">Head C — local window</option></select></label>
@@ -245,7 +260,7 @@ function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294
 function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}</span><span><i style="width:${Math.max(0,Math.min(100,r.v*100))}%;${r.c?'background:'+r.c:''}"></i></span><span>${fmt?fmt(r):(r.v*100).toFixed(1)+'%'}</span></div>`).join('')}
 
 /* theme */
-const SECS=[['tokens','1 · Next-token prediction'],['attention','2 · Self-attention'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
+const SECS=[['tokens','1 · Next-token prediction'],['attn-goal','2a · Self-attention: the goal'],['attention','2b · Self-attention: Q, K, V in action'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
 SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
 
@@ -284,6 +299,21 @@ function drawTok(){const T=+$('#temp').value,K=+$('#topk').value;$('#tempv').tex
 $('#temp').oninput=$('#topk').oninput=drawTok;
 $('#sample').onclick=()=>{const rows=drawTok();let r=Math.random(),a=0;for(const x of rows){a+=x.v;if(r<a){gen=` <span class="tok sel">${x.l}</span>`;break}}$('#gen').innerHTML=gen};
 $('#reset1').onclick=()=>{$('#gen').innerHTML='';drawTok()};drawTok();
+
+/* 2a attention goal */
+function drawGoal(){const w=+$('#gWord').value,st=+$('#gStr').value,f=x=>(Math.round(x*1000)/1000).toFixed(3);$('#gStrv').textContent=st.toFixed(1);
+  const word=w?'wide':'tired',q=w?[0,st]:[st,0],r2=Math.SQRT2;
+  const KA=[2,0],KS=[0,2],dA=q[0]*KA[0]+q[1]*KA[1],dS=q[0]*KS[0]+q[1]*KS[1],a=dA/r2,b=dS/r2,ea=Math.exp(a),eb=Math.exp(b),pa=ea/(ea+eb),pb=1-pa;
+  $('#gCalc').textContent=`"${word}" query q = [${q.map(x=>x.toFixed(1)).join(', ')}]  (${w?'looking for a place':'looking for something alive'})
+keys: animal [2, 0] · street [0, 2]
+1) q·k: animal ${f(dA)}, street ${f(dS)}
+2) ÷ √d = √2: ${f(a)}, ${f(b)}
+3) softmax: e^${f(a)} = ${f(ea)}, e^${f(b)} = ${f(eb)} → weights ${f(pa)}, ${f(pb)}
+4) output = ${f(pa)}·V(animal) + ${f(pb)}·V(street)
+   = [${f(pa)}, ${f(pb)}]  (V(animal) = [1, 0], V(street) = [0, 1])`;
+  $('#gA').classList.toggle('sel',pa>0.5);$('#gS').classList.toggle('sel',pb>0.5);
+  bar($('#gBars'),[{l:'animal',v:pa,c:'var(--acc)'},{l:'street',v:pb,c:'var(--acc2)'}])}
+$('#gWord').onchange=$('#gStr').oninput=drawGoal;drawGoal();
 
 /* 2 attention */
 const WORDS='The animal didn\'t cross the street because it was too tired'.split(' ');
@@ -937,7 +967,7 @@ const GLOSS=[
 [/\bdeterministic\b/i,'Deterministic','Same input → same output, every time. No randomness involved (or the random generator always starts from the same seed).','greedy decoding is deterministic; sampling at temperature 1 is not.'],
 [/\bdot product\b/i,'Dot product','Multiply two vectors position by position and add the results. Large when they point the same way.','[1, 2, 3] · [4, 5, 6] = 1·4 + 2·5 + 3·6 = 4 + 10 + 18 = 32.'],
 [/\bvectors?\b/i,'Vector','An ordered list of numbers; each number is one dimension.','[0.2, −1.3, 0.7] is a 3-dimensional vector. Real embeddings have hundreds to thousands of dimensions.'],
-[/\buniform\b|\bevenly\b|\beven spread\b/i,'Uniform (even) distribution','Every outcome equally likely: each gets 1 ÷ (number of outcomes).','8 experts evenly loaded → 1/8 = 12.5% of tokens each; 64 tokens × top-2 → 16 per expert.',['stats','tokens','attention','variants','moe','inference','playground','features','atlas']],
+[/\buniform\b|\bevenly\b|\beven spread\b/i,'Uniform (even) distribution','Every outcome equally likely: each gets 1 ÷ (number of outcomes).','8 experts evenly loaded → 1/8 = 12.5% of tokens each; 64 tokens × top-2 → 16 per expert.',['stats','tokens','attn-goal','attention','variants','moe','inference','playground','features','atlas']],
 [/\bentropy\b/i,'Entropy','How spread out (uncertain) a distribution is: −Σ p · log p. 0 when one outcome is certain; largest when all are equal.','[1, 0, 0] → 0\n[0.665, 0.245, 0.090] → 0.832\n[1/3, 1/3, 1/3] → log 3 = 1.099 (maximum for 3 outcomes)'],
 [/\bvocabulary\b/i,'Vocabulary','The fixed list of every token a model knows, typically 30,000–250,000 entries. Each step the model scores all of them.','GPT-2 has 50,257 tokens in its vocabulary.'],
 [/\blogits?\b/i,'Logit','The raw score the model gives each token before turning scores into probabilities. Any real number; higher means more likely.','After "The cat sat on the": mat = 5.0, floor = 3.6.\nDifference 5.0 − 3.6 = 1.4, so after softmax mat is e^1.4 ≈ 4.06× as likely as floor.\nCheck on slide 1: 56.6% / 13.9% ≈ 4.07.'],
@@ -950,10 +980,10 @@ const GLOSS=[
 [/\bself-attention\b/i,'Self-attention','Each token looks at the other tokens in the same text and pulls in information from the relevant ones. The core operation of a transformer.','2 tokens, head dim d = 4. Query of token 2: q = [1, 0, 1, 0]\nkeys: k₁ = [1, 0, 1, 0], k₂ = [0, 1, 0, 1]\n1) dot products: q·k₁ = 1+0+1+0 = 2, q·k₂ = 0\n2) scale by √d = 2: [1, 0]\n3) softmax: [0.731, 0.269]\n4) output = 0.731·v₁ + 0.269·v₂; with v₁ = [1, 0], v₂ = [0, 1] → [0.731, 0.269]'],
 [/\bmulti-head attention\b|\bMHA\b/,'Multi-head attention (MHA)','Run several attention "heads" side by side, each with its own Q, K and V, and combine their outputs. Each head can learn a different pattern.','32 heads, each with its own 128-dim Q, K and V. Their 32 outputs are concatenated: 32 × 128 = 4,096 numbers, then mixed by one output matrix.'],
 [/\battention\b/i,'Attention','A mechanism that lets each token weigh every other (earlier) token by relevance and take a weighted mix of their information.','weights = softmax(q·k / √d), output = Σ weight × value.\nScores [2, 0] for two tokens, d = 4: [2, 0] / 2 = [1, 0] → softmax → [0.731, 0.269] → 73% of the output comes from token 1.'],
-[/\bquery\b/i,'Query (Q)','A vector each token produces meaning "what am I looking for?". It is compared with every key to get attention weights.','q = [1, 0, 1, 0] against k = [1, 0, 1, 0]: q·k = 1·1 + 0·0 + 1·1 + 0·0 = 2 (similar → high score)\nagainst k = [0, 1, 0, 1]: q·k = 0 (unrelated → low score).',['attention','variants','inference']],
-[/\bkeys?\b/i,'Key (K)','A vector each token produces meaning "what do I contain?". Queries are matched against keys (dot product) to score relevance.','k = [1, 0, 1, 0] scores 2 against the query [1, 0, 1, 0] and 0 against [0, 1, 0, 1]. Keys pointing the same way as a query get the attention.',['attention','variants','inference']],
-[/\bvalues?\b/i,'Value (V)','A vector each token produces meaning "what I hand over". The attention output is a weighted sum of values.','attention weights [0.731, 0.269], values v₁ = [1, 0], v₂ = [0, 1]\noutput = 0.731·[1, 0] + 0.269·[0, 1] = [0.731, 0.269]',['attention','variants','inference']],
-[/\bheads?\b/i,'Attention head','One independent attention computation inside a layer. Real models have dozens of heads per layer.','32 heads × 128 dims per head = 4,096 = the model width.\n32 layers × 32 heads = 1,024 heads in the model.',['attention','variants','inference']],
+[/\bquery\b/i,'Query (Q)','A vector each token produces meaning "what am I looking for?". It is compared with every key to get attention weights.','q = [1, 0, 1, 0] against k = [1, 0, 1, 0]: q·k = 1·1 + 0·0 + 1·1 + 0·0 = 2 (similar → high score)\nagainst k = [0, 1, 0, 1]: q·k = 0 (unrelated → low score).',['attn-goal','attention','variants','inference']],
+[/\bkeys?\b/i,'Key (K)','A vector each token produces meaning "what do I contain?". Queries are matched against keys (dot product) to score relevance.','k = [1, 0, 1, 0] scores 2 against the query [1, 0, 1, 0] and 0 against [0, 1, 0, 1]. Keys pointing the same way as a query get the attention.',['attn-goal','attention','variants','inference']],
+[/\bvalues?\b/i,'Value (V)','A vector each token produces meaning "what I hand over". The attention output is a weighted sum of values.','attention weights [0.731, 0.269], values v₁ = [1, 0], v₂ = [0, 1]\noutput = 0.731·[1, 0] + 0.269·[0, 1] = [0.731, 0.269]',['attn-goal','attention','variants','inference']],
+[/\bheads?\b/i,'Attention head','One independent attention computation inside a layer. Real models have dozens of heads per layer.','32 heads × 128 dims per head = 4,096 = the model width.\n32 layers × 32 heads = 1,024 heads in the model.',['attn-goal','attention','variants','inference']],
 [/\bcausal mask\b|\bmasked\b/i,'Causal mask','Blocks attention to future tokens, so each token sees only itself and what came before. Required for left-to-right generation.','scores for token 2 looking at tokens 1, 2, 3: [2, 1, 5]\nmask the future token: [2, 1, −∞]; e^−∞ = 0\nsoftmax → [0.731, 0.269, 0]: token 3 gets exactly zero weight however high its score.'],
 [/\btransformers?\b/i,'Transformer','The neural-network architecture behind modern LLMs: stacked layers of attention plus small feed-forward networks.','GPT, Claude, Gemini and Llama are all transformers.'],
 [/\blayers?\b/i,'Layer','One block of the network. In a transformer each layer is attention followed by a feed-forward network; models stack 12 to 100+ of them.',''],
@@ -1053,6 +1083,8 @@ const TIPS={
 '#sample':'Draw one token at random from the bars, using the current temperature and top-k. Press repeatedly to see the randomness.',
 '#reset1':'Clear the sampled token. Temperature and top-k stay as they are.',
 '#tokbars':'Probability of each candidate next token. Grey bars were cut away by top-k.',
+'#gWord':'Switch the last word. "tired" makes the query look for something alive, so "animal" wins; "wide" looks for a place, so "street" wins. Same sentence, different meaning.',
+'#gStr':'Scales the query vector. Bigger query → bigger dot products → softmax picks more decisively. At 0 every score is 0, so the weights are 0.5 / 0.5: a plain average.',
 '#head':'Pick one of three hand-built attention heads. Real models have dozens per layer, each learning its own pattern.',
 '#causal':'On: a token can only attend to itself and earlier tokens (GPT-style generation). Off: bidirectional, BERT-style attention.',
 '#atok':'Click any word to make it the query. Shading shows how strongly that word attends to each other word.',

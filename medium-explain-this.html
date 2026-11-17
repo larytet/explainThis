@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Explain This!</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  /* Preview only. Medium ignores CSS when you paste, it keeps just the semantic tags. */
+  body { font-family: Georgia, serif; max-width: 700px; margin: 40px auto; padding: 0 16px; line-height: 1.6; color: #242424; background: #fff; }
+  pre { background: #f2f2f2; padding: 12px; overflow-x: auto; font-size: 14px; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 0.9em; }
+  blockquote { border-left: 3px solid #242424; margin-left: 0; padding-left: 16px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<h1>Explain This!</h1>
+
+<h2>The AI built my Jira replacement. I needed a guided tour of my own software.</h2>
+
+<p>In my <a href="https://medium.com/@ark5612/i-asked-an-ai-to-build-a-jira-replacement-61aa0ab4ca6b">previous article</a> I asked an AI to build a Jira replacement. It did. The result, Tasklane, is a self-hosted issue tracker with projects, workflows, boards, sprints, custom fields, a customer portal and a Jira-style query language.</p>
+
+<p>There was one small problem: the code existed, it worked, and I did not understand it. Tens of thousands of lines of Go, written faster than I could read them. I had become the proud owner of a codebase where I needed to ask for directions.</p>
+
+<p>Naturally, I asked the same AI to explain it. This felt a bit like asking the person who built a maze to please come and collect me.</p>
+
+<h2>I asked for directions. I got an encyclopedia.</h2>
+
+<p>My first "explain this codebase" request produced a wall of confident prose: part README, part guesswork, part plausible fiction. Unfortunately, all three wore the same outfit. I could not tell what the AI had checked and what it had simply said with excellent posture.</p>
+
+<p>I needed an explanation I could check, in portions I could digest. So I wrote a Claude Code skill called <b>explain-this</b> and gave my enthusiastic tour guide a few ground rules:</p>
+
+<ul>
+<li><b>Bottom-up review, top-down explanation.</b> Before it writes a word about a piece, it reads that piece's code from the leaves upward. Then it presents the piece from the purpose down to the details.</li>
+<li><b>Code is the primary source.</b> Documentation, Jira, Notion and Slack may support a claim, but they never replace reading the code.</li>
+<li><b>A citation on every claim.</b> Each statement carries a <code>file:line</code> reference, and each is labelled <i>verified</i>, <i>inferred</i> or <i>unverified</i>.</li>
+<li><b>Overview first.</b> Purpose, modules and flows come before any detail, and the pieces are ordered by role, with the wiring last.</li>
+<li><b>Every term defined at first use.</b> If the explanation says "outbox", it says what an outbox is right there.</li>
+<li><b>Stop after each piece.</b> It waits for my questions instead of dumping everything at once.</li>
+</ul>
+
+<p>The skill is read-only. It never edits the code it explains. I wanted a tour of the house; renovations could wait.</p>
+
+<h2>What happened when I pointed it at Tasklane</h2>
+
+<p>The skill lives in the open at <a href="https://github.com/larytet/explainThis/">github.com/larytet/explainThis</a>. Here is what it did when I pointed it at Tasklane. I typed one line:</p>
+
+<pre><code>use the skill to explain ~/tasklane</code></pre>
+
+<p>First, it did something I appreciated: it read. It mapped the project, found it was too big to read in one pass, and launched five survey agents in parallel. They covered the foundation packages, the core tracker domain, identity and tenancy, integrations, and the API, web, search and MCP layers.</p>
+
+<p>When the reports came back, one of them contradicted the README. Rather than pass it along, the AI said it was re-reading those lines itself before putting them in the overview. That is the behaviour I wanted. A survey report gives it somewhere to look; it still has to check what is actually there.</p>
+
+<h2>Welcome to the software you apparently own</h2>
+
+<p>Here is what it told me Tasklane is, in its own words.</p>
+
+<blockquote>Tasklane is a self-hosted issue and project tracker that aims at Jira parity. One installation can serve several organizations. Each organization is a tenant with its own users, projects and policy. It can also mirror or write through to a real Jira site.</blockquote>
+
+<p>It then split the code into modules and said which one is the core:</p>
+
+<ul>
+<li><b>Domain:</b> all the business logic, one big <code>Service</code> struct of about 38,000 lines.</li>
+<li><b>API:</b> HTTP routes on plain <code>net/http</code>, with auth, CSRF and audit.</li>
+<li><b>Search:</b> a query language called TQL, a SQL compiler, and an optional OpenSearch engine.</li>
+<li><b>Realtime and MCP:</b> a WebSocket hub for live events, and a JSON-RPC server so AI agents can use the tracker.</li>
+<li><b>Web UI:</b> plain JavaScript with no build step, embedded in the binary.</li>
+<li><b>Foundation:</b> the database and migrations, config, release signing.</li>
+</ul>
+
+<p>That 38,000-line domain layer deserved a moment of quiet reflection. Then came the part I could never have written myself in an afternoon: how a write actually travels through the system.</p>
+
+<blockquote>Every mutation runs in one PostgreSQL transaction. The transaction writes the change, a history row, and an outbox row. The outbox is a table that records each event in the same transaction as the write, so a background worker can act on it later and no event is lost if the process dies.</blockquote>
+
+<p>This was the style I wanted: name the pattern, then explain it while I am still in the room. An earlier version had casually mentioned an "outbox" and moved on, apparently confident that I had packed all the necessary vocabulary.</p>
+
+<h2>A few surprises under the floorboards</h2>
+
+<p>The overview ended with "Findings so far", which sounds harmless until it is about software you own:</p>
+
+<ul>
+<li><b>Tenant isolation lives mainly in the application, with some database guardrails.</b> Three triggers reject cross-organization memberships, and a database view filters effective project membership. But the migrations define no PostgreSQL row-level-security policies, so the Go code must consistently check access before returning data. The database checks the guest list; the application still has to mind the doors.</li>
+<li><b>Identity management is not fully separated by organization yet.</b> Employee SSO (single sign-on through a company identity provider) and SCIM (automatic account creation, updates and deactivation) are managed for the whole installation. New accounts created through them land in the Default organization. Groups belong to an organization, but organization administrators cannot yet manage their own; the current group-creation flow creates them in Default. The docs acknowledge these limitations. Separate apartments, shared reception desk.</li>
+<li><b>Tasklane checks incoming email signatures but does not sign outgoing mail.</b> DKIM is a digital signature that lets receiving servers verify a message's signing domain and check that its signed content has not changed. Tasklane implements incoming verification only; outgoing DKIM signing must be configured on the mail server or email provider that delivers its messages. Tasklane checks the seal on arriving envelopes; the mailroom seals the ones going out.</li>
+<li><b>The README links three documents that do not exist.</b> The documentation had an imaginary friends department.</li>
+</ul>
+
+<p>It was just as honest about its limits. A section called "Unverified" listed the files it had read only at header depth, said it had not run any tests, and flagged two suspected bugs as inferred, not confirmed. One was that moving a board card changes the status and writes the rank in two separate transactions. The other was that an interrupted organization creation could leave an organization with no admin.</p>
+
+<p>I had asked for a guided tour and received a short list of things to investigate. Fair enough. The rules required it to report uncertainty, including the bits I might have preferred to discover after lunch.</p>
+
+<h2>Twenty pieces. Mercifully, one at a time.</h2>
+
+<p>The AI proposed an outline of 20 pieces, ordered by role: service foundations, issues, text editing, workflows, boards, bulk jobs, search, outbox consumers, sign-in, federated identity, tenancy, the HTTP API, the web UI, blobs, the Jira mirror, git linking, mail and the portal, import and export, hosted billing, and finally the wiring that assembles it all.</p>
+
+<p>Twenty pieces sounds like a lot. So does "learn your entire application", but at least this version had stopping points. It asked whether I wanted to merge, skip or reorder anything, or begin with piece 1. I said "begin with piece 1". A bold choice, starting at the beginning.</p>
+
+<h2>Piece 1: learning to speak my own codebase</h2>
+
+<p>Each piece follows the same template: purpose, how it works, key details, what could not be determined, and a recap. Piece 1 covered the ideas everything else builds on.</p>
+
+<ul>
+<li><b><code>Service</code></b> is the one struct every domain operation hangs off. Its clock is the machine clock plus an offset measured against the database, so leases and expiries mean the same thing on every node.</li>
+<li><b><code>Actor</code></b> says who is acting: a person, an API token, an agent or an automation rule.</li>
+<li><b>The write pattern</b> is a transaction that writes the data, a history row and an outbox row, and only after commit announces the change to the realtime hub and the cluster bus.</li>
+<li><b>Access checks return "not found", not "forbidden".</b> A person without access cannot even tell whether a hidden issue exists.</li>
+<li><b>Ranks</b> are strings that sort in issue order. A function builds a string strictly between two others, so inserting an item never renumbers its neighbours.</li>
+<li><b>Idempotency keys</b> let a retried request return the first result instead of running twice, with separate answers for replay, mismatch and still-in-flight.</li>
+</ul>
+
+<p>It closed by naming what it still could not determine: the built-in permission defaults it had not read, and a claim about ranks it had inferred without testing. Then: "Ask follow-up questions, or say 'next' to continue."</p>
+
+<p>And then it stopped. I could ask a question without scrolling past the next six chapters. That pause turned out to be one of the most useful features.</p>
+
+<h2>The code was fast. Catching up was my job.</h2>
+
+<p>AI had made producing the code remarkably fast. Understanding it still required me to sit down and pay attention, which was slightly rude of the future. Somebody still has to know how the system works when it breaks.</p>
+
+<p>What helped was giving the model a process I could follow:</p>
+
+<ol>
+<li>Read the code before talking about the code.</li>
+<li>Cite every claim, and say how sure you are.</li>
+<li>Define every term the first time it appears.</li>
+<li>Say what you did not check.</li>
+<li>Stop, and let the human ask.</li>
+</ol>
+
+<p>None of this is specific to Tasklane. The skill works on any large module, and it is open source. Drop it into <code>~/.claude/skills/</code>, open Claude Code on the code you cannot explain, and type:</p>
+
+<pre><code>/explain-this internal/auth</code></pre>
+
+<p>You can find the skill on <a href="https://github.com/larytet/explainThis/">GitHub</a>. Try it on the part of your codebase you usually describe as "a bit complicated" and tell me what it gets wrong. If it helps, a star is welcome. The origin story is in <a href="https://medium.com/@ark5612/i-asked-an-ai-to-build-a-jira-replacement-61aa0ab4ca6b">I Asked an AI to Build a Jira Replacement</a>.</p>
+
+</body>
+</html>

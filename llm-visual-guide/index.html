@@ -100,7 +100,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 <main>
 <section id="intro" data-title="Start here" data-group="How an LLM works">
   <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
-  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then nine tiny, deterministic toys: next-token sampling, the goal of attention, attention, the KV cache, mixture of experts, inference, training, features and embeddings. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
+  <p class="sub">A slide deck in two parts. <b>Part 1</b> starts with the statistics you need, then ten tiny, deterministic toys: next-token sampling, the goal of attention, attention, the KV cache, mixture of experts, inference, training, features, embeddings and how one model handles many languages. They are simplified models with hand-set numbers, not real model weights. <b>Part 2</b> has one slide per agent framework, with facts and code checked against each project's official documentation, and ends with an interactive "which one should I pick?".</p>
   <div class="two">
     <div class="pick"><b>Move along</b><br>Use <b>Next →</b> / <b>← Previous</b> at the bottom, the arrow keys, or the slide menu at the top.</div>
     <div class="pick"><b>Get help on anything</b><br>Hover (or tab to) any slider, button, list or diagram box to see what it does and how.</div>
@@ -243,6 +243,23 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
   <div class="row"><input id="aQ" placeholder="search word…" style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg)"><span id="aInfo" class="note" style="margin:0"></span></div>
   <canvas id="acv" width="900" height="460" style="width:100%"></canvas>
 </section>
+
+<section id="langs">
+  <h2>9 · One model, many languages <span class="tag">tokenisation · data</span></h2>
+  <p>The same transformer, with the same next-token prediction and the same attention, serves every human language and code. Nothing in the architecture is English-specific. What differs is <b>how text is cut into tokens</b> and <b>how much training text exists</b>. Below, one sentence in eight languages runs through two toy tokenizers.</p>
+  <div class="row">
+    <label>Tokenizer <select id="lTok"><option value="0" selected>English-heavy (toy)</option><option value="1">Multilingual (toy)</option></select></label>
+    <label>Show tokens for <select id="lShow"></select></label>
+  </div>
+  <div id="lChips" style="min-height:40px"></div>
+  <div class="bars" id="lBars"></div>
+  <div class="two" style="margin-top:10px">
+    <div class="pick"><b>What stays the same</b><br>• One model, one shared vocabulary, one set of weights for all languages.<br>• Attention learns word order from data: verb-second (English), verb-last (Japanese) and free order (Latin) just give different attention patterns.<br>• Concepts are shared: "cat", "Katze" and "猫" land near each other in embedding space, so skills learned in one language often transfer.</div>
+    <div class="pick"><b>What differs</b><br>• <b>Tokenisation:</b> badly covered languages need more tokens for the same meaning → slower, costlier, less fits in the context.<br>• <b>Morphology:</b> Finnish "matolla" = "on the mat"; Russian nouns change form by case. More word forms to learn.<br>• <b>Data:</b> English has trillions of tokens of text, many languages a thousandth of that or less. The biggest real gap.<br>• <b>Code</b> is just another token sequence, with the bonus that output can be checked by running it.</div>
+  </div>
+  <div class="note" id="lNote"></div>
+</section>
+
 </main>
 <footer>Single file, no dependencies. Part 1: toy models for intuition, not real LLM internals. Part 2: checked against official documentation on 2026-11-17.</footer>
 <div id="deck">
@@ -260,7 +277,7 @@ function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294
 function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}</span><span><i style="width:${Math.max(0,Math.min(100,r.v*100))}%;${r.c?'background:'+r.c:''}"></i></span><span>${fmt?fmt(r):(r.v*100).toFixed(1)+'%'}</span></div>`).join('')}
 
 /* theme */
-const SECS=[['tokens','1 · Next-token prediction'],['attn-goal','2a · Self-attention: the goal'],['attention','2b · Self-attention: Q, K, V in action'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
+const SECS=[['tokens','1 · Next-token prediction'],['attn-goal','2a · Self-attention: the goal'],['attention','2b · Self-attention: Q, K, V in action'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map'],['langs','9 · One model, many languages']];
 SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
 
@@ -420,6 +437,25 @@ function drawFeat(){const txt=$('#fIn').value,toks=txt.split(/(\W+)/),lw=toks.ma
   const sums=FEAT.map((f,k)=>({l:f[0],v:Math.min(1,act[k].reduce((a,b)=>a+b,0)/3),c:f[3],t:act[k].reduce((a,b)=>a+b,0)}));
   $('#fbars').innerHTML=sums.map(r=>`<div class="b" style="grid-template-columns:210px 1fr 70px"><span>${r.l}</span><span><i style="width:${r.v*100}%;background:${r.c}"></i></span><span>${r.t} hit${r.t===1?'':'s'}</span></div>`).join('')+'<div style="margin-top:10px"><b>Toy next-word distribution:</b> '+ex.sort((a,b)=>b[1]-a[1]).map(([w,e])=>`<span class="pill">${w} ${(e/z*100).toFixed(0)}%</span>`).join('')+'</div>'}
 $('#fIn').oninput=$('#fSt').onchange=$('#fStr').oninput=drawFeat;drawFeat();
+
+/* 9 languages */
+const LS=[['English','The cat sat on the mat.'],['Spanish','El gato se sentó en la alfombra.'],['German','Die Katze saß auf der Matte.'],['Finnish','Kissa istui matolla.'],['Turkish','Kedi paspasın üstünde oturdu.'],['Russian','Кошка сидела на коврике.'],['Chinese','猫坐在垫子上。'],['Japanese','猫がマットの上に座った。']];
+const LV0=['The',' cat',' sat',' on',' the',' mat','.',' in',' en',' la',' de',' der',' auf',' to','El',' se','Die',' al',' g','ato','sent','fom','bra','Kat','ze',' sa',' Mat','te',' K','ol','la','ed',' pas','pas',' ot','ur','du',' st','er','en','an','at','on','st','ss','ta','ka','de','ie','in','ou','ra','to','ma','el','ll','is','it','ut','ti','un','ü','ı'];
+const LV1=LV0.concat(['El',' gato',' se',' sentó',' alfombra','Die',' Katze',' saß',' Matte','Kissa',' istui',' mat','olla','Kedi',' paspas','ın',' üstünde',' oturdu','Кошка',' сидела',' на',' ков','рике','猫','坐','在','垫子','上','。','が','マット','の','に','座った']);
+const enc=new TextEncoder();
+function toyTok(t,V){const out=[];let i=0;while(i<t.length){let best='';for(const v of V)if(v.length>best.length&&t.startsWith(v,i))best=v;
+  if(best){out.push([best,0]);i+=best.length;continue}
+  const cp=String.fromCodePoint(t.codePointAt(i)),n=cp.length;
+  if(/[A-Za-z ]/.test(cp)){out.push([cp,0])}else{for(const b of enc.encode(cp))out.push(['<'+b.toString(16).toUpperCase()+'>',1])}
+  i+=n}return out}
+if(!$('#lShow').options.length)$('#lShow').innerHTML=LS.map(([n],i)=>`<option value="${i}"${i===6?' selected':''}>${n}</option>`).join('');
+function drawLangs(){const V=+$('#lTok').value?LV1:LV0,k=+$('#lShow').value,res=LS.map(([n,t])=>[n,t,toyTok(t,V)]),en=res[0][2].length,mx=Math.max(...res.map(r=>r[2].length));
+  const [n,t,tk]=res[k];
+  $('#lChips').innerHTML=`<span class="meta">${n}: "${t}" → ${tk.length} tokens</span><br>`+tk.map(([x,b])=>`<span class="tok" style="cursor:default${b?';opacity:.65;font-size:11px':''}">${x.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/ /g,'▁')}</span>`).join('');
+  bar($('#lBars'),res.map(([n,,tk],i)=>({l:n,v:tk.length/mx,c:i===k?'var(--acc2)':null})),r=>{const c=res.find(x=>x[0]===r.l)[2].length;return `${c} · ${(c/en).toFixed(1)}×`});
+  const worst=res.slice().sort((a,b)=>b[2].length-a[2].length)[0];
+  $('#lNote').innerHTML=+$('#lTok').value?`With a vocabulary that includes these languages' words and characters, every sentence costs about the same number of tokens (English ${en}, highest ${worst[0]} ${worst[2].length}). This is why newer tokenizers are trained on multilingual text.`:`The English-heavy vocabulary covers English words whole, covers other Latin-script languages only with common fragments and single letters, and falls back to raw UTF-8 bytes (shown faded, like &lt;E7&gt;) for anything else: a Cyrillic letter is 2 bytes, a Chinese or Japanese character 3. ${worst[0]} costs ${(worst[2].length/en).toFixed(1)}× as many tokens as English for the same meaning. Toy vocabularies, hand-made for this sentence; real tokenizers have 50k–250k entries but show the same effect.`}
+$('#lTok').onchange=$('#lShow').onchange=drawLangs;drawLangs();
 
 /* 8 atlas */
 const CL={
@@ -1085,6 +1121,8 @@ const TIPS={
 '#tokbars':'Probability of each candidate next token. Grey bars were cut away by top-k.',
 '#gWord':'Switch the last word. "tired" makes the query look for something alive, so "animal" wins; "wide" looks for a place, so "street" wins. Same sentence, different meaning.',
 '#gStr':'Scales the query vector. Bigger query → bigger dot products → softmax picks more decisively. At 0 every score is 0, so the weights are 0.5 / 0.5: a plain average.',
+'#lTok':'Pick a toy vocabulary. English-heavy: whole English words, letters for other Latin scripts, raw UTF-8 bytes for everything else. Multilingual: also contains these sentences\' words and characters. Watch the token counts change.',
+'#lShow':'Which language\'s token split to show as chips. Faded chips like <E7> are single bytes: the tokenizer had no entry for that character.',
 '#head':'Pick one of three hand-built attention heads. Real models have dozens per layer, each learning its own pattern.',
 '#causal':'On: a token can only attend to itself and earlier tokens (GPT-style generation). Off: bidirectional, BERT-style attention.',
 '#atok':'Click any word to make it the query. Shading shows how strongly that word attends to each other word.',

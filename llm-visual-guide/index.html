@@ -125,7 +125,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
     <div class="srow"><span>Entropy (how uncertain)</span><span id="sEnt"></span></div>
     <div class="srow"><span>Sampling (randomness)</span><span><span id="sSamp"></span><br><button id="sDraw" style="margin-top:6px">Draw 100 samples</button> <button id="sClear">Reset counts</button></span></div>
   </div>
-  <div class="note">Try −1, 0, 4: plain normalising fails on the negative number, softmax still works. Try 1, 1, 1, 1: a uniform distribution, so entropy hits its maximum and argmax is a tie.</div>
+  <div class="note">Try −1, 0, 4: plain normalising fails on the negative number, softmax still works. Try 1, 1, 1, 1: equal scores give equal probabilities (0.25 each), the most uncertain a choice can be, so entropy hits its <b>maximum</b> (2 bits) and argmax is a tie. Entropy is low when one score dominates, e.g. 10, 0, 0, 0 → H ≈ 0.</div>
 </section>
 
 <section id="tokens">

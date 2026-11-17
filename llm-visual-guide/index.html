@@ -1048,7 +1048,9 @@ $('#jump').onchange=e=>go(byId('#'+e.target.value));
 addEventListener('hashchange',()=>{const i=byId(location.hash);if(i>=0)go(i)});
 addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea')||e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.key==='ArrowRight'||e.key==='PageDown'){go(cur+1);e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='PageUp'){go(cur-1);e.preventDefault()}else if(e.key==='Home')go(0);else if(e.key==='End')go(slides.length-1)});
+if('scrollRestoration' in history)history.scrollRestoration='manual';
 go(Math.max(0,byId(location.hash)));
+addEventListener('load',()=>requestAnimationFrame(()=>scrollTo(0,0)));
 </script>
 </body>
 </html>

@@ -32,8 +32,10 @@ section.cur{display:block;animation:fade .2s ease-out}
 #prog{flex:1;max-width:420px;height:6px;background:var(--line);border-radius:99px;overflow:hidden}
 #prog i{display:block;height:100%;background:var(--acc);transition:width .2s}
 #count{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;min-width:64px;text-align:center}
-#tip{position:fixed;z-index:30;max-width:320px;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.45;padding:7px 10px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .12s;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#tip{position:fixed;z-index:30;max-width:320px;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.45;padding:7px 10px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .12s;white-space:pre-line;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 #tip.on{opacity:1}
+.term{border-bottom:1px dotted var(--mut);cursor:help}
+.term:hover{border-bottom-color:var(--acc);color:var(--acc)}
 label[data-tip],.concept,[data-tip].hm-wrap{cursor:help}
 pre.code{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;font:12.5px/1.5 ui-monospace,Menlo,monospace;margin:0;white-space:pre}
 .codehead{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;font-size:13px;color:var(--mut)}
@@ -869,6 +871,105 @@ $$('main section[id^="fw-"]').forEach(wireFw);
 if(FW.length){$$('#choose input,#choose select').forEach(e=>e.onchange=drawChoose);
 $('#cClear').onclick=()=>{$$('.cNeed').forEach(c=>c.checked=false);$('#cLang').value='any';$('#cProv').value='any';drawChoose()};drawChoose();}
 
+/* ================= glossary ================= */
+const GLOSS=[
+[/\btokens?\b/i,'Token','The unit a model reads and writes: a word, part of a word, a space or a punctuation mark. Text is split into tokens before the model sees it.','"unbelievable" might become "un" + "believ" + "able" — 3 tokens. A rough rule for English: 1 token ≈ ¾ of a word.'],
+[/\bvocabulary\b/i,'Vocabulary','The fixed list of every token a model knows, typically 30,000–250,000 entries. Each step the model scores all of them.','GPT-2 has 50,257 tokens in its vocabulary.'],
+[/\blogits?\b/i,'Logit','The raw score the model gives each token before turning scores into probabilities. Any real number; higher means more likely.','After "The cat sat on the", "mat" might get 5.0 and "tax" −1.2.'],
+[/\bsoftmax\b/i,'Softmax','Turns a list of scores into probabilities that are all positive and add up to 1: exponentiate each score, then divide by the total.','Scores [2, 1, 0] → probabilities ≈ [0.67, 0.24, 0.09].'],
+[/\btemperature\b/i,'Temperature','A dial on randomness: every logit is divided by it before softmax. Below 1 makes the top choice dominate; above 1 spreads probability out.','At 0.2 the model nearly always says "mat"; at 2.0 "sofa" or "roof" show up often.'],
+[/\btop-k\b/i,'Top-k','Sampling restriction: keep only the k most likely tokens, drop the rest, renormalise. k = 1 is greedy decoding.','With k = 3 only "mat", "floor" and "sofa" can be picked.'],
+[/\bgreedy\b/i,'Greedy decoding','Always pick the single most likely next token. Deterministic, but can be repetitive.','Same prompt → same output every time.'],
+[/\bsampl(e|ed|es|ing)\b/i,'Sampling','Picking the next token at random according to its probability, so likely tokens win often but not always.','"mat" at 57% is chosen about 57 times in 100 draws.'],
+[/\bprobabilit(y|ies)\b/i,'Probability','How likely an outcome is, from 0 (never) to 1 (always). Over all tokens they add up to 1.',''],
+[/\bself-attention\b/i,'Self-attention','Each token looks at the other tokens in the same text and pulls in information from the relevant ones. The core operation of a transformer.','In "the animal was too tired", "tired" attends strongly to "animal".'],
+[/\bmulti-head attention\b|\bMHA\b/,'Multi-head attention (MHA)','Run several attention "heads" side by side, each with its own Q, K and V, and combine their outputs. Each head can learn a different pattern.','One head tracks the previous word, another links pronouns to nouns.'],
+[/\battention\b/i,'Attention','A mechanism that lets each token weigh every other (earlier) token by relevance and take a weighted mix of their information.',''],
+[/\bquery\b/i,'Query (Q)','A vector each token produces meaning "what am I looking for?". It is compared with every key to get attention weights.','The query of "it" looks for a noun it could refer to.',['attention','variants','inference']],
+[/\bkeys?\b/i,'Key (K)','A vector each token produces meaning "what do I contain?". Queries are matched against keys (dot product) to score relevance.','',['attention','variants','inference']],
+[/\bvalues?\b/i,'Value (V)','A vector each token produces meaning "what I hand over". The attention output is a weighted sum of values.','',['attention','variants','inference']],
+[/\bheads?\b/i,'Attention head','One independent attention computation inside a layer. Real models have dozens of heads per layer.','A 32-layer model with 32 heads per layer has 1,024 heads.',['attention','variants','inference']],
+[/\bcausal mask\b|\bmasked\b/i,'Causal mask','Blocks attention to future tokens, so each token sees only itself and what came before. Required for left-to-right generation.','When predicting word 5, words 6+ are hidden.'],
+[/\btransformers?\b/i,'Transformer','The neural-network architecture behind modern LLMs: stacked layers of attention plus small feed-forward networks.','GPT, Claude, Gemini and Llama are all transformers.'],
+[/\blayers?\b/i,'Layer','One block of the network. In a transformer each layer is attention followed by a feed-forward network; models stack 12 to 100+ of them.',''],
+[/\bKV cache\b/i,'KV cache','Memory of the keys and values already computed for earlier tokens, so each new token only computes its own instead of redoing the whole text.','Generating token 1,001 reuses the K/V of tokens 1–1,000.'],
+[/\bGQA\b|\bgrouped-query\b/i,'Grouped-query attention (GQA)','Several query heads share one key/value head, so the KV cache shrinks by the group size.','32 query heads in 8 groups → 4× smaller cache than MHA.'],
+[/\bMQA\b|\bmulti-query\b/i,'Multi-query attention (MQA)','All query heads share a single key/value head: the smallest cache, at some quality cost.',''],
+[/\bMLA\b|\blatent\b/i,'Multi-head latent attention (MLA)','Caches one compressed "latent" vector per token and rebuilds keys and values from it. Introduced in DeepSeek models.',''],
+[/\bsliding window\b/i,'Sliding-window attention','Each token attends only to the last W tokens, so memory stops growing after W.','With W = 4,096, token 10,000 sees tokens 5,905–10,000.'],
+[/\bcontext\b/i,'Context (window)','All the tokens the model can see at once: prompt plus generated text. Its maximum length is the context window.','A 200K-token context holds roughly a 500-page book.'],
+[/\bfp16\b|\bbf16\b/i,'fp16 / bf16','16-bit number formats (2 bytes each) used to store weights and caches. Half the memory of 32-bit floats.',''],
+[/\bMixture of Experts\b|\bMoE\b/,'Mixture of Experts (MoE)','A layer made of many smaller feed-forward "experts"; each token is sent to only a few of them. Huge total size, modest compute per token.','8 experts, top-2 routing: each token uses 2 of 8.'],
+[/\brouter\b|\brouting\b/i,'Router','A small learned network in an MoE layer that scores the experts for each token and picks the top-k.',''],
+[/\bexperts?\b/i,'Expert','One of the parallel feed-forward networks in an MoE layer.',''],
+[/\bload[- ]balancing\b/i,'Load balancing','A training penalty that pushes the router to spread tokens evenly so no expert is overloaded and none sits idle.',''],
+[/\bactive parameters\b/i,'Active parameters','The weights actually used for one token. In MoE this is far fewer than the total parameter count.','A 671B-parameter MoE might use ~37B per token.'],
+[/\binference\b/i,'Inference','Running a trained model to produce output — as opposed to training it.',''],
+[/\bprefill\b/i,'Prefill','The first phase of inference: the whole prompt is processed in one parallel pass, filling the KV cache.','A 2,000-token prompt is processed at once, not word by word.'],
+[/\bdecode\b|\bdecoding\b/i,'Decode','The second phase of inference: generate one token per step, each step reading the whole KV cache.',''],
+[/\bcompute-bound\b/i,'Compute-bound','Speed limited by how fast the chip can do arithmetic. Prefill is compute-bound.',''],
+[/\bmemory-bandwidth-bound\b/i,'Memory-bandwidth-bound','Speed limited by how fast data moves from memory to the chip. Decode is memory-bound: it re-reads all weights for every token.',''],
+[/\bmatmul\b/i,'Matmul','Matrix multiplication — the operation that makes up most of an LLM\'s compute.',''],
+[/\bneural net(work)?s?\b|\bnets?\b(?= )/i,'Neural network','Layers of simple units (neurons) connected by weights; training adjusts the weights so the outputs match examples.',''],
+[/\bMLP\b/,'MLP (multi-layer perceptron)','The simplest neural network: fully connected layers with a non-linearity between them.',''],
+[/\bneurons?\b/i,'Neuron','One unit: multiply inputs by weights, add a bias, apply a non-linear function.',''],
+[/\btanh\b/,'tanh','A non-linear activation function that squashes any number into −1…1. Without non-linearities, stacked layers collapse into one.',''],
+[/\bSGD\b|\bgradient descent\b/i,'Stochastic gradient descent (SGD)','The training method: for each example, nudge every weight a little in the direction that reduces the loss.',''],
+[/\blearning rate\b/i,'Learning rate','How big each weight update is. Too small learns slowly; too large overshoots and training diverges.','0.03 trains smoothly here; 0.3 often oscillates.'],
+[/\bepochs?\b/i,'Epoch','One full pass over the training data.',''],
+[/\bloss\b/i,'Loss','A number measuring how wrong the predictions are. Training tries to make it smaller.','Cross-entropy loss: 0.69 = coin-flip guessing, near 0 = confident and right.'],
+[/\bweights?\b/i,'Weights','The learned numbers inside a network. "Training" means adjusting them; "model size" counts them.','',['intro','moe','inference','playground','features']],
+[/\bfeatures?\b/i,'Feature (interpretability)','A direction in the model\'s internal activations that corresponds to a human-recognisable concept.','A "Golden Gate Bridge" feature fires on text about the bridge.',['features','intro']],
+[/\bsparse autoencoder\b/i,'Sparse autoencoder (SAE)','A small network trained to rewrite a model\'s activations as a few active features out of many thousands, making them easier to interpret.',''],
+[/\bsteer(ing)?\b/i,'Steering','Adding a feature\'s direction to the model\'s activations while it runs, to push its output towards that concept.','Boosting a "weather" feature makes the model drift into talking about fog.',['features']],
+[/\binterpretability\b/i,'Interpretability','Research into what is happening inside a model: which internal parts represent which concepts.',''],
+[/\bembeddings?\b/i,'Embedding','A list of numbers (a vector) representing a token, word or document, placed so similar meanings are close together.','"cat" and "dog" are near each other; "cat" and "tax" are far apart.'],
+[/\bcosine\b/i,'Cosine similarity','Similarity of two vectors by the angle between them: 1 = same direction, 0 = unrelated, −1 = opposite.',''],
+[/\bnearest neighbou?rs?\b/i,'Nearest neighbours','The points closest to a given point; in embedding space, the most similar items.',''],
+[/\bclusters?\b/i,'Cluster','A group of points that sit close together — in embeddings, usually items with related meaning.','',['atlas']],
+[/\bLLMs?\b/,'LLM (large language model)','A neural network trained on huge amounts of text to predict the next token; chat assistants are LLMs fine-tuned to follow instructions.',''],
+[/\bagent loop\b/i,'Agent loop','The cycle at the heart of an agent: call the model → run the tools it asks for → feed results back → repeat until it answers.',''],
+[/\bagents?\b/i,'Agent','An LLM in a loop that can call tools, look at the results and decide the next step until the task is done.','"Fix the failing test": read file → run tests → edit → run tests again.'],
+[/\btool calls?\b|\btool-use\b|\btool use\b/i,'Tool call','The model\'s structured request to run a function, e.g. {"name": "get_weather", "input": {"city": "Paris"}}. Your code runs it and sends back the result.',''],
+[/\btools?\b/i,'Tool','A function the model may ask to run — search, database query, file edit, API call — described to it by name, description and input schema.',''],
+[/\bRAG\b|\bretrieval\b/,'RAG (retrieval-augmented generation)','Before answering, fetch relevant passages from your documents (usually by embedding search) and put them in the prompt.','Q: "What is our refund policy?" → retrieve the policy paragraph → answer from it.'],
+[/\bMCP\b/,'MCP (Model Context Protocol)','An open protocol for connecting models to tools and data sources through standard "servers", so one integration works across many apps.',''],
+[/\bschemas?\b/i,'Schema','A formal description of a data shape: field names, types, which are required. Used to define tool inputs and validate model output.','{"city": string, "days": integer ≥ 1}'],
+[/\bstructured output\b|\bvalidated output\b|\btyped output\b/i,'Structured output','Making the model return data in a fixed shape (JSON matching a schema) that code can rely on, instead of free text.',''],
+[/\bPydantic\b/,'Pydantic','The most widely used Python library for declaring typed data models and validating data against them.',''],
+[/\bworkflows?\b/i,'Workflow','A predefined sequence or graph of steps (model calls, tools, code) — more predictable than letting an agent decide everything.',''],
+[/\bgraph\b/i,'Graph','Nodes (steps) connected by edges (what runs next). Unlike a straight chain, a graph can branch and loop.',''],
+[/\bnodes?\b/,'Node','One step in a graph workflow — usually a function that reads state and returns updates.',''],
+[/\bstate\b/i,'State','The data a workflow carries between steps: messages so far, intermediate results, flags.',''],
+[/\bcheckpoint(s|ing|ed)?\b/i,'Checkpoint','A saved snapshot of a run\'s state so it can resume after a crash or a pause.','A run waits two days for a manager\'s approval, then continues from the checkpoint.'],
+[/\bhuman-in-the-loop\b|\bfor a human\b|\bhuman approval\b/i,'Human-in-the-loop','Pausing a run so a person can approve, edit or reject a step before it continues.','The agent drafts a refund; a person clicks Approve before it is sent.'],
+[/\bhandoffs?\b/i,'Handoff','One agent passing the conversation to another, more specialised agent.','A triage agent hands a billing question to the billing agent.'],
+[/\bguardrails?\b/i,'Guardrail','A check on input or output that can stop the run, e.g. blocking off-topic requests or leaked secrets.',''],
+[/\bmiddleware\b/i,'Middleware','Code that wraps each step of the agent loop to inspect or change it — logging, trimming history, approvals.',''],
+[/\bstreaming\b|\bstream\b/i,'Streaming','Sending output piece by piece as it is generated, so users see text appear immediately.',''],
+[/\bsystem prompt\b|\binstructions\b/i,'System prompt / instructions','Standing instructions that frame every request: role, rules, tone, output format.','"You are a support agent. Answer only from the docs."'],
+[/\bprompts?\b/i,'Prompt','The text (and other input) sent to the model for one request.',''],
+[/\bevals?\b|\bevaluation\b/i,'Evals','Automated tests of model or agent quality on a fixed set of examples, scored by rules, metrics or another model.',''],
+[/\btrac(ing|es?)\b|\bobservability\b|\btelemetry\b/i,'Tracing / observability','Recording every model call, tool call, input and output of a run so you can debug and measure it.',''],
+[/\bReAct\b/,'ReAct','"Reason + Act": the model alternates between thinking about what to do, taking an action (tool call) and observing the result.',''],
+[/\bsandbox(ed)?\b/i,'Sandbox','An isolated environment (container or VM) where agent-written code runs without access to your real system.',''],
+[/\bmulti-agent\b/i,'Multi-agent','Several agents with different roles or tools working on one task, passing work or sharing state.',''],
+[/\bvector stores?\b/i,'Vector store','A database that stores embeddings and finds the nearest ones to a query quickly.',''],
+[/\bretrievers?\b/i,'Retriever','The component that, given a question, fetches the most relevant documents or chunks.',''],
+[/\bchunks?\b/i,'Chunk','A piece of a document (a few hundred tokens) stored and retrieved separately in RAG.',''],
+[/\bmetric\b/i,'Metric','A function that scores an output, e.g. exact match or "did the answer cite a source?". Optimizers and evals need one.',''],
+[/\bfew-shot\b|\bdemos\b/i,'Few-shot examples','Worked input → output examples placed in the prompt to show the model what you want.',''],
+[/\bharness\b/i,'Harness','The code around the model that runs the agent loop: tools, context management, permissions, retries.','Claude Code is a harness around Claude.'],
+[/\bSDK\b/,'SDK','Software development kit: a library for calling a service or building on a platform from your code.',''],
+];
+function glossify(){const skip='code,pre,button,select,option,label,a,.tok,.tag,h1,h2,h3,script,style,[data-tip],.flow,.concept,table,canvas,#tip,#anote,#mstats,#istat,#pstat,#aInfo,#fOut,#fbars,#tokbars,#vbars,#mbars,#icells,#gen,#cOut,.fwnote,#tipcov';let n=0;
+  $$('main section').forEach(sec=>{const used=new Set(),w=document.createTreeWalker(sec,NodeFilter.SHOW_TEXT,{acceptNode:t=>!t.nodeValue.trim()||t.parentElement.closest(skip)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}),texts=[];
+    while(w.nextNode())texts.push(w.currentNode);
+    texts.forEach(t=>{for(;;){let best=null;GLOSS.forEach((g,i)=>{if(used.has(g[1])||(g[4]&&!g[4].includes(sec.id)))return;const m=g[0].exec(t.nodeValue);if(m&&(!best||m.index<best.m.index||(m.index===best.m.index&&m[0].length>best.m[0].length)))best={m,g}});
+      if(!best)break;used.add(best.g[1]);const hit=t.splitText(best.m.index),rest=hit.splitText(best.m[0].length),sp=document.createElement('span');
+      sp.className='term';sp.dataset.tip=best.g[1]+' — '+best.g[2]+(best.g[3]?'\nExample: '+best.g[3]:'');hit.replaceWith(sp);sp.appendChild(hit);n++;t=rest}})});
+  return n}
+const nTerms=glossify();
 /* ================= tooltips ================= */
 const TIPS={
 '#theme':'Switch between light and dark theme. The first visit follows your system setting.',
@@ -929,7 +1030,7 @@ document.addEventListener('mousemove',e=>{if(tipEl)placeTip(e.clientX,e.clientY)
 document.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();showTip(el,r.left,r.bottom)}});
 document.addEventListener('focusout',hideTip);
 {const ctl=$$('header button,header select,#deck button,main button,main select,main input,main canvas,#atok,#amat,main .concept,main .flow .st');
- const n=ctl.filter(e=>e.closest('[data-tip]')).length;$('#tipcov').textContent=`Tooltips cover ${n} of ${ctl.length} interactive elements (${Math.round(n/ctl.length*100)}%).`}
+ const n=ctl.filter(e=>e.closest('[data-tip]')).length;$('#tipcov').textContent=`Tooltips cover ${n} of ${ctl.length} interactive elements (${Math.round(n/ctl.length*100)}%), plus ${nTerms} vocabulary terms across the slides — dotted underline, hover for a definition and example.`}
 
 /* ================= slide deck ================= */
 const slides=$$('main > section');let cur=-1;

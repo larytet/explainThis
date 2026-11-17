@@ -159,7 +159,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="attention">
   <h2>2b · Self-attention: Q, K and V in action <span class="tag">Illustrated Transformer · LLM Visualization</span></h2>
-  <p>Each token makes a <b>query</b> ("what am I looking for?"), a <b>key</b> ("what do I contain?") and a <b>value</b> ("what I hand over"). Weights = softmax(Q·K / √d), masked so a token only sees the past. Click a token to see where it looks. Three hand-made "heads" show that heads specialise.</p>
+  <p>Each token computes three vectors from its own vector x, by multiplying it with three learned weight matrices shared by all tokens: a <b>query</b> q = x·W<sub>Q</sub> ("what am I looking for?"), a <b>key</b> k = x·W<sub>K</sub> ("what do I contain?") and a <b>value</b> v = x·W<sub>V</sub> ("what I hand over"). Weights = softmax(Q·K / √d), masked so a token only sees the past. Click a token to see where it looks. Three hand-made "heads" show that heads specialise.</p>
   <div class="row">
     <label>Head <select id="head"><option value="0">Head A — previous token</option><option value="1" selected>Head B — pronoun → referent</option><option value="2">Head C — local window</option></select></label>
     <label><input type="checkbox" id="causal" checked> Causal mask</label>

@@ -19,8 +19,40 @@ button,select,input{font:inherit;color:inherit}
 button{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}
 button:hover{border-color:var(--acc)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
-main{max-width:980px;margin:0 auto;padding:16px}
-section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0;scroll-margin-top:60px}
+main{max-width:980px;margin:0 auto;padding:16px 16px 96px}
+section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:18px 0;display:none}
+section.cur{display:block;animation:fade .2s ease-out}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+#jump{max-width:min(340px,60vw);padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.keys{color:var(--mut);font-size:12.5px;flex:1}
+#deck{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--bg);border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;justify-content:center;padding:9px 16px}
+#deck button{padding:6px 14px}
+#deck button:disabled{opacity:.4;cursor:default;border-color:var(--line)}
+#prog{flex:1;max-width:420px;height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+#prog i{display:block;height:100%;background:var(--acc);transition:width .2s}
+#count{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px;min-width:64px;text-align:center}
+#tip{position:fixed;z-index:30;max-width:320px;background:var(--ink);color:var(--bg);font-size:12.5px;line-height:1.45;padding:7px 10px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .12s;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#tip.on{opacity:1}
+label[data-tip],.concept,[data-tip].hm-wrap{cursor:help}
+pre.code{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow:auto;font:12.5px/1.5 ui-monospace,Menlo,monospace;margin:0;white-space:pre}
+.codehead{display:flex;justify-content:space-between;align-items:center;margin:12px 0 4px;font-size:13px;color:var(--mut)}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:6px 0}
+.flow .st{border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:13px;background:var(--bg);transition:background .2s,color .2s,border-color .2s}
+.flow .st.hot{background:var(--acc);color:#fff;border-color:var(--acc)}
+.flow .ar{color:var(--mut)}
+.concepts{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:8px 0}
+.concept{border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:8px;padding:6px 9px;font-size:13px;background:var(--panel)}
+.concept small{display:block;color:var(--mut);line-height:1.35;margin-top:2px}
+.concept.hot{border-color:var(--acc2);border-left-color:var(--acc2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.two{grid-template-columns:1fr}.keys{display:none}}
+.meta{font-size:12.5px;color:var(--mut)}
+.meta a{color:var(--acc)}
+.pick{border-left:3px solid var(--ok);padding-left:9px;font-size:13.5px}
+.skip{border-left:3px solid var(--warn);padding-left:9px;font-size:13.5px}
+.fix{font-size:12.5px;background:var(--chip);border-radius:8px;padding:6px 10px;margin-top:10px}
+.rank{display:grid;grid-template-columns:28px 160px 1fr;gap:8px;align-items:start;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rank b.n{color:var(--acc)}
 h1{font-size:26px;margin:18px 0 4px}h2{font-size:20px;margin:0 0 2px}
 .sub{color:var(--mut);margin:0 0 12px}
 .src{font-size:12.5px;color:var(--mut);margin-bottom:10px}
@@ -53,14 +85,15 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 <body>
 <header>
   <b>LLM Visual Guide</b>
-  <nav id="nav"></nav>
-  <button id="theme" title="Toggle theme">◐</button>
+  <select id="jump" aria-label="Jump to slide"></select>
+  <span class="keys">← → to move · hover anything for help</span>
+  <button id="theme" aria-label="Toggle theme">◐</button>
 </header>
 <main>
-<h1>How an LLM works — ten visual resources, one playable page</h1>
-<p class="sub">Each section below is a tiny, deterministic toy inspired by one of the resources you listed. They are simplified models built from hand-set numbers, not real model weights — use them to build intuition, then open the real resource (link in each section) for the full picture.</p>
-
-<section id="resources">
+<section id="resources" data-title="Start: the ten resources" data-group="How an LLM works">
+  <h1 style="margin-top:0">How an LLM works — and the frameworks people build agents with</h1>
+  <p class="sub">A slide deck. Part 1 is eight tiny, deterministic toys inspired by the resources below — simplified models with hand-set numbers, not real model weights. Part 2 has one slide per agent framework, checked against each project's official docs. Use <b>Next →</b> at the bottom (or the → key) to move along, and hover any control to see what it does.</p>
+  <p class="meta" id="tipcov"></p>
   <h2>The ten resources</h2>
   <p class="sub">Short links were resolved in a browser; the destinations are shown below.</p>
   <div class="grid" id="resgrid"></div>
@@ -143,7 +176,7 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 
 <section id="playground">
   <h2>6 · Train a tiny neural network <span class="tag">TensorFlow Playground · 3Blue1Brown</span></h2>
-  <div class="src">Real things: <a href="https://playground.tensorflow.org/" target="_blank" rel="noopener">playground.tensorflow.org</a> · <a href="https://www.3blue1brown.com/?topic=neural-networks" target="_blank" rel="noopener">3Blue1Brown neural networks</a>. This one is a from-scratch MLP (tanh, SGD) running in your browser.</p></div>
+  <div class="src">Real things: <a href="https://playground.tensorflow.org/" target="_blank" rel="noopener">playground.tensorflow.org</a> · <a href="https://www.3blue1brown.com/?topic=neural-networks" target="_blank" rel="noopener">3Blue1Brown neural networks</a>. This one is a from-scratch MLP (tanh, SGD) running in your browser.</div>
   <div class="row">
     <label>Data <select id="pData"><option value="xor">XOR</option><option value="circle">Circle</option><option value="spiral">Spiral</option></select></label>
     <label>Hidden layers <select id="pLay"><option>1</option><option selected>2</option><option>3</option></select></label>
@@ -176,6 +209,13 @@ footer{color:var(--mut);font-size:12.5px;text-align:center;padding:20px}
 </section>
 </main>
 <footer>Single file, no dependencies. Toy models for intuition — not real LLM internals. Open the linked originals for the real thing.</footer>
+<div id="deck">
+  <button id="prev">← Previous</button>
+  <div id="prog"><i></i></div>
+  <span id="count"></span>
+  <button class="pri" id="next">Next →</button>
+</div>
+<div id="tip" role="tooltip"></div>
 
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
@@ -183,12 +223,10 @@ const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).tri
 function rng(seed){let s=seed>>>0;return()=>((s=(s*1664525+1013904223)>>>0)/4294967296)}
 function bar(el,rows,fmt){el.innerHTML=rows.map(r=>`<div class="b"><span>${r.l}</span><span><i style="width:${Math.max(0,Math.min(100,r.v*100))}%;${r.c?'background:'+r.c:''}"></i></span><span>${fmt?fmt(r):(r.v*100).toFixed(1)+'%'}</span></div>`).join('')}
 
-/* nav + theme */
-const SECS=[['resources','Resources'],['tokens','Next token'],['attention','Attention'],['variants','KV cache'],['moe','MoE'],['inference','Inference'],['playground','Train a net'],['features','Features'],['atlas','Embeddings']];
-$('#nav').innerHTML=SECS.map(([i,t])=>`<a href="#${i}">${t}</a>`).join('');
+/* theme */
+const SECS=[['tokens','1 · Next-token prediction'],['attention','2 · Self-attention'],['variants','3 · Attention variants & KV cache'],['moe','4 · Mixture of Experts'],['inference','5 · Prefill, decode & KV cache'],['playground','6 · Train a tiny network'],['features','7 · Features & steering'],['atlas','8 · Embedding map']];
+SECS.forEach(([i,t])=>{const s=$('#'+i);s.dataset.title=t;s.dataset.group='How an LLM works'});
 $('#theme').onclick=()=>{const d=document.documentElement,dark=cssv('--bg')==='#14171b';d.dataset.theme=dark?'light':'dark';drawAll()};
-const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)$$('nav a').forEach(a=>a.classList.toggle('on',a.hash==='#'+e.target.id))}),{rootMargin:'-40% 0px -55% 0px'});
-SECS.forEach(([i])=>io.observe($('#'+i)));
 
 /* resources */
 const RES=[
@@ -348,6 +386,148 @@ $('#aQ').oninput=e=>{aQuery=e.target.value;drawAtlas()};
 
 function drawAll(){drawAttn();drawPG();drawAtlas()}
 drawAtlas();
+
+/* ================= Part 2: agent frameworks ================= */
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const CHECKED='2026-11-17';
+/*FW-DATA-START*/
+const FW=[];
+/*FW-DATA-END*/
+function fwSection(f){
+  const lines=f.code.split('\n');
+  return `<section id="fw-${f.id}" data-title="${esc(f.name)}" data-group="${esc(f.group)}">
+  <h2>${esc(f.name)} <span class="tag">${esc(f.tag)}</span></h2>
+  <p class="sub">${f.pitch}</p>
+  <div class="meta">Official sources: ${f.docs.map(([l,u])=>`<a href="${u}" target="_blank" rel="noopener">${esc(l)}</a>`).join(' · ')} · facts checked against them on ${CHECKED}</div>
+  <h3 style="margin:14px 0 2px;font-size:15px">Building blocks <span class="meta">— click one to find it in the code</span></h3>
+  <div class="concepts">${f.concepts.map(([n,d,kw],k)=>`<div class="concept" data-k="${k}" data-kw="${esc(kw||'')}" data-tip="${esc(n+': '+d+(kw?' — click to highlight it in the code below.':''))}"><b>${esc(n)}</b><small>${esc(d)}</small></div>`).join('')}</div>
+  <h3 style="margin:14px 0 2px;font-size:15px">How one run flows</h3>
+  <div class="row" style="margin:4px 0"><button class="fwplay">▶ Play a run</button><span class="meta fwnote">${esc(f.flowNote||'')}</span></div>
+  <div class="flow">${f.flow.map(([s,x],k)=>(k?'<span class="ar">→</span>':'')+`<span class="st" data-k="${k}" data-x="${esc(x)}" data-tip="${esc(s+': '+x)}">${esc(s)}</span>`).join('')}${f.loop?'<span class="ar" data-tip="'+esc(f.loop)+'">↺ '+esc(f.loopShort||'repeat')+'</span>':''}</div>
+  <div class="codehead"><span>Minimal example (${esc(f.lang)}) — adapted from the <a href="${f.quick}" target="_blank" rel="noopener" style="color:var(--acc)">official quickstart</a></span><button class="fwcopy">Copy</button></div>
+  <pre class="code">${lines.map(l=>`<span class="ln">${esc(l)||' '}</span>`).join('\n')}</pre>
+  <div class="two" style="margin-top:12px"><div class="pick"><b>Pick it when</b><br>${f.pick}</div><div class="skip"><b>Think twice when</b><br>${f.skip}</div></div>
+  ${f.status?`<div class="note">${f.status}</div>`:''}
+  ${f.fix?`<div class="fix"><b>Correction to the earlier summary:</b> ${f.fix}</div>`:''}
+</section>`}
+function wireFw(sec){
+  const lines=[...sec.querySelectorAll('pre .ln')];
+  sec.querySelectorAll('.concept').forEach(c=>c.onclick=()=>{const on=!c.classList.contains('hot');sec.querySelectorAll('.concept').forEach(x=>x.classList.remove('hot'));lines.forEach(l=>l.style.background='');
+    if(!on||!c.dataset.kw)return;c.classList.add('hot');const re=new RegExp(c.dataset.kw);lines.forEach(l=>{if(re.test(l.textContent))l.style.background='rgba(var(--heat),.18)'})});
+  const steps=[...sec.querySelectorAll('.flow .st')],note=sec.querySelector('.fwnote'),btn=sec.querySelector('.fwplay');let t=null;
+  btn.onclick=()=>{if(t){clearInterval(t);t=null}let k=0;const tick=()=>{steps.forEach((s,i)=>s.classList.toggle('hot',i===k));if(k<steps.length){note.textContent=`Step ${k+1}/${steps.length} — ${steps[k].textContent}: ${steps[k].dataset.x}`;k++}else{clearInterval(t);t=null;steps.forEach(s=>s.classList.remove('hot'));note.textContent='Run finished. Press again to replay.'}};tick();t=setInterval(tick,1600)};
+  sec.querySelector('.fwcopy').onclick=e=>{const txt=lines.map(l=>l.textContent).join('\n');(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{e.target.textContent='Copied'},()=>{e.target.textContent='Select & copy manually'});setTimeout(()=>e.target.textContent='Copy',1500)}}
+const NEEDS=[
+['multi','Several agents share state or hand work to each other','Multi-agent: two or more specialised agents that pass work or share state.','multi-agent'],
+['durable','Long-running workflow: survives restarts, pauses for human approval','Durable execution: checkpoint state so a run can pause (e.g. for a human) and resume after a crash or deploy.','durable runs'],
+['typed','Typed, validated output is the main need','Structured output: the model must return data matching a schema, validated before your code sees it.','typed output'],
+['rag','Mostly answering questions over my own documents','Retrieval-augmented generation: index your documents, retrieve relevant chunks, answer from them.','RAG'],
+['code','The agent works in a code repo (edits files, runs commands)','Coding agent: reads and edits files, runs shell commands and tests in a workspace.','coding agent'],
+['memory','Agent must remember users across sessions','Long-term memory: facts about users or past sessions persist and are recalled later.','long-term memory'],
+['optimize','Tune prompts automatically against a metric','Prompt optimisation: the framework searches for better instructions or few-shot examples using your metric and examples.','prompt optimisation'],
+['minimal','Fewest dependencies — I want to see every line of the loop','Minimal: thin layer or none at all; you own the agent loop.','minimal']];
+function chooserSection(){return `<section id="choose" data-title="Which one should I pick?" data-group="Agent frameworks — choosing">
+  <h2>Which one should I pick? <span class="tag">rule of thumb, not a benchmark</span></h2>
+  <p class="sub">Tick what your project needs. Each framework gets points from a hand-written fit table based on what its official docs say it is for. The list re-ranks as you click.</p>
+  <div class="row">
+    <label data-tip="Filter by the language your project uses. Frameworks with no first-class SDK in that language are dropped.">Language <select id="cLang"><option value="any">Any</option><option value="py" selected>Python</option><option value="ts">TypeScript</option></select></label>
+    <label data-tip="Give a small bonus to frameworks built by, or closely tied to, this model provider. 'Any' means you want to switch models freely.">Main model provider <select id="cProv"><option value="any">Any / switching</option><option value="openai">OpenAI</option><option value="claude">Anthropic Claude</option><option value="gemini">Google Gemini</option></select></label>
+    <button id="cClear" data-tip="Untick every need and reset the filters.">Clear</button>
+  </div>
+  <div style="columns:2 280px;margin:6px 0 10px">${NEEDS.map(([k,l,t])=>`<label style="margin:4px 0" data-tip="${esc(t)}"><input type="checkbox" class="cNeed" value="${k}"> ${esc(l)}</label>`).join('')}</div>
+  <div id="cOut" data-tip="Top matches. The number is the fit score; the reasons list which of your ticks it matched. Click a name to open its slide."></div>
+  <div class="note">Fit scores are a judgement call written for this page (0 = not its focus, 1 = supported, 2 = what it is built for). Open the slides and the official docs before deciding.</div>
+</section>`}
+function drawChoose(){const lang=$('#cLang').value,prov=$('#cProv').value,need=$$('.cNeed:checked').map(c=>c.value);
+  const res=FW.filter(f=>f.fit&&(lang==='any'||f.fit[lang])).map(f=>{let s=0,why=[];need.forEach(n=>{const v=f.fit[n]||0;s+=v;if(v)why.push(NEEDS.find(x=>x[0]===n)[3]+(v===2?' ★':''))});
+    if(prov!=='any'&&f.fit.prov===prov){s+=1.5;why.push('built for '+$('#cProv').selectedOptions[0].text)}if(prov!=='any'&&f.fit.prov&&f.fit.prov!=='any'&&f.fit.prov!==prov)s-=1;return {f,s,why}}).sort((a,b)=>b.s-a.s||a.f.name.localeCompare(b.f.name));
+  $('#cOut').innerHTML=need.length||prov!=='any'?res.slice(0,6).map((r,i)=>`<div class="rank"><b class="n">${i+1}</b><span><a href="#fw-${r.f.id}" style="color:var(--acc);font-weight:600">${esc(r.f.name)}</a> <span class="meta">${r.s.toFixed(1)}</span></span><span class="meta">${r.why.length?esc(r.why.join(' · ')):'no direct match'}</span></div>`).join(''):'<p class="meta">Tick at least one need to see a ranking.</p>'}
+$('main').insertAdjacentHTML('beforeend',FW.map(fwSection).join('')+(FW.length?chooserSection():''));
+$$('main section[id^="fw-"]').forEach(wireFw);
+if(FW.length){$$('#choose input,#choose select').forEach(e=>e.onchange=drawChoose);
+$('#cClear').onclick=()=>{$$('.cNeed').forEach(c=>c.checked=false);$('#cLang').value='any';$('#cProv').value='any';drawChoose()};drawChoose();}
+
+/* ================= tooltips ================= */
+const TIPS={
+'#theme':'Switch between light and dark theme. The first visit follows your system setting.',
+'#jump':'Jump straight to any slide. Slides are grouped: how an LLM works, then the agent frameworks.',
+'#prev':'Previous slide. Shortcut: ← (ignored while a slider or text box has focus).',
+'#next':'Next slide. Shortcut: → (ignored while a slider or text box has focus).',
+'#prog':'How far through the deck you are.',
+'#resgrid':'Each card title opens the original resource in a new tab; "try the toy version" jumps to the matching slide.',
+'#temp':'Temperature divides every logit before softmax. Below 1 sharpens the distribution (more predictable); above 1 flattens it (more random). Drag and watch the bars.',
+'#topk':'Keep only the k highest-scoring tokens, zero the rest, then renormalise. k = 1 is greedy decoding.',
+'#sample':'Draw one token at random from the bars, using the current temperature and top-k. Press repeatedly to see the randomness.',
+'#reset1':'Clear the sampled token. Temperature and top-k stay as they are.',
+'#tokbars':'Probability of each candidate next token. Grey bars were cut away by top-k.',
+'#head':'Pick one of three hand-built attention heads. Real models have dozens per layer, each learning its own pattern.',
+'#causal':'On: a token can only attend to itself and earlier tokens (GPT-style generation). Off: bidirectional, BERT-style attention.',
+'#atok':'Click any word to make it the query. Shading shows how strongly that word attends to each other word.',
+'#amat':'Full attention matrix: rows are query words, columns are key words, cells are weights. Every row sums to 1.',
+'#vL':'Number of transformer layers. Each layer keeps its own KV cache, so cache size grows linearly with layers.',
+'#vH':'Number of query heads. In plain multi-head attention (MHA) each one also has its own K and V head.',
+'#vD':'Size of each head\'s vector. Cache size scales linearly with it.',
+'#vG':'Grouped-query attention: query heads share K/V within this many groups. 1 group = multi-query attention; groups = heads = plain MHA.',
+'#vC':'Multi-head latent attention caches one compressed vector of this size per token per layer instead of full K and V.',
+'#vW':'Sliding-window attention keeps only the last W tokens in the cache, so memory stops growing after W.',
+'#vT':'Number of tokens being cached. Total cache = per-token cost × context length.',
+'#vbars':'Cache memory per token and for the whole context, drawn relative to plain MHA.',
+'#mK':'How many experts each token is sent to. More experts per token means more compute per token.',
+'#mB':'Strength of the load-balancing pressure. 0% lets the router keep favouring its popular experts; 100% removes that bias.',
+'#mNew':'Route a fresh random batch of 64 tokens with the same settings.',
+'#mbars':'Tokens each expert received. Red = overloaded (over 1.5× fair share), grey = starved (under 0.5×).',
+'#iP':'Prompt length. All of it is processed in one parallel prefill pass. Changing it restarts the run.',
+'#iO':'How many tokens to generate, one per decode step. Changing it restarts the run.',
+'#iC':'Keep keys and values of earlier tokens. Off: every decode step recomputes the whole sequence.',
+'#iStep':'Advance one step. The first press runs prefill; each later press decodes one token.',
+'#iRun':'Play every remaining step automatically.',
+'#iReset':'Go back to before prefill.',
+'#icells':'One square per token position. P = prompt, G = generated. Blue = computed this step, grey = read from cache, orange outline = newest.',
+'#pData':'Two-class dataset (orange vs blue). Changing it restarts training.',
+'#pLay':'Number of hidden layers. More layers can bend the decision boundary more. Changing it restarts training.',
+'#pNeu':'Neurons in each hidden layer. Changing it restarts training.',
+'#pLr':'Step size of each weight update. Too small learns slowly; too large overshoots and oscillates.',
+'#pPlay':'Start or pause training. Each frame runs 3 epochs of stochastic gradient descent.',
+'#pReset':'New random weights; epoch back to 0.',
+'#pcv':'Background colour = the network\'s prediction at that point; dots = training data. Stronger colour = more confident.',
+'#fIn':'Type any text. Words in a toy feature\'s keyword list get outlined in that feature\'s colour.',
+'#fSt':'Pick a feature to amplify in the toy next-word distribution, like feature steering on Neuronpedia.',
+'#fStr':'How hard to push the chosen feature. 0 = no steering.',
+'#fbars':'How many words in your text activate each feature.',
+'#aQ':'Highlight words containing this text; everything else is dimmed.',
+'#acv':'Hover a dot to see its 5 nearest neighbours; click to pin it, click again to unpin.'};
+Object.entries(TIPS).forEach(([s,t])=>{const el=$(s);if(!el)return;const host=el.matches('input,select')&&el.closest('label')||el;host.dataset.tip=t;el.setAttribute('aria-description',t)});
+$$('main .fwplay').forEach(b=>b.dataset.tip='Animate one run step by step. Each box lights up in order with a one-line explanation.');
+$$('main .fwcopy').forEach(b=>b.dataset.tip='Copy the example to the clipboard. It is a sketch adapted from the quickstart: install the package and set an API key first.');
+$$('main .card a[href^="#"]').forEach(a=>a.dataset.tip='Jump to the slide with the toy version of this resource.');
+const tip=$('#tip');let tipEl=null;
+function placeTip(x,y){const r=tip.getBoundingClientRect();let L=x+14,T=y+18;if(L+r.width>innerWidth-8)L=innerWidth-r.width-8;if(T+r.height>innerHeight-60)T=y-r.height-12;tip.style.left=Math.max(8,L)+'px';tip.style.top=Math.max(8,T)+'px'}
+function showTip(el,x,y){tipEl=el;tip.textContent=el.dataset.tip;tip.classList.add('on');placeTip(x,y)}
+function hideTip(){tipEl=null;tip.classList.remove('on')}
+document.addEventListener('mouseover',e=>{const el=e.target.closest('[data-tip]');if(el){if(el!==tipEl)showTip(el,e.clientX,e.clientY)}else hideTip()});
+document.addEventListener('mousemove',e=>{if(tipEl)placeTip(e.clientX,e.clientY)});
+document.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');if(el){const r=el.getBoundingClientRect();showTip(el,r.left,r.bottom)}});
+document.addEventListener('focusout',hideTip);
+{const ctl=$$('header button,header select,#deck button,main button,main select,main input,main canvas,#atok,#amat,#resgrid,main .concept,main .flow .st');
+ const n=ctl.filter(e=>e.closest('[data-tip]')).length;$('#tipcov').textContent=`Tooltips cover ${n} of ${ctl.length} interactive elements (${Math.round(n/ctl.length*100)}%).`}
+
+/* ================= slide deck ================= */
+const slides=$$('main > section');let cur=-1;
+{let html='',g=null;slides.forEach(s=>{if(s.dataset.group!==g){if(g!==null)html+='</optgroup>';g=s.dataset.group;html+=`<optgroup label="${esc(g)}">`}html+=`<option value="${s.id}">${esc(s.dataset.title||s.id)}</option>`});$('#jump').innerHTML=html+'</optgroup>'}
+function go(i){i=Math.max(0,Math.min(slides.length-1,i));if(i===cur)return;
+  if(slides[cur]&&slides[cur].id==='playground'&&pRun)$('#pPlay').click();
+  cur=i;slides.forEach((s,k)=>s.classList.toggle('cur',k===i));const id=slides[i].id;
+  $('#count').textContent=`${i+1} / ${slides.length}`;$('#prog i').style.width=((i+1)/slides.length*100)+'%';
+  $('#prev').disabled=i===0;$('#next').disabled=i===slides.length-1;$('#jump').value=id;
+  if(location.hash!=='#'+id)history.replaceState(null,'','#'+id);window.scrollTo(0,0);hideTip();
+  if(id==='atlas')drawAtlas();if(id==='playground')drawPG()}
+const byId=h=>slides.findIndex(s=>'#'+s.id===h);
+$('#prev').onclick=()=>go(cur-1);$('#next').onclick=()=>go(cur+1);
+$('#jump').onchange=e=>go(byId('#'+e.target.value));
+addEventListener('hashchange',()=>{const i=byId(location.hash);if(i>=0)go(i)});
+addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea')||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.key==='ArrowRight'||e.key==='PageDown'){go(cur+1);e.preventDefault()}else if(e.key==='ArrowLeft'||e.key==='PageUp'){go(cur-1);e.preventDefault()}else if(e.key==='Home')go(0);else if(e.key==='End')go(slides.length-1)});
+go(Math.max(0,byId(location.hash)));
 </script>
 </body>
 </html>

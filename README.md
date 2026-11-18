@@ -90,3 +90,15 @@ human owns the intent and the expectations, and the harness owns the context.
 ```
 /idsd add a red shoe under $90 to the shop
 ```
+
+## stale-check: is it out of date?
+
+`.claude/skills/stale-check/SKILL.md` reviews a spec, skill, mock, roadmap or code base for stale assumptions, after Claudio Lupi's
+"AI Is Now Building AI Twice as Fast. The Evidence Is Redacted." It extracts the high-level requirements, matches each against what
+is available today (commercial or free, checked on the web, with source, date and lineage tag), and flags what sits in a busy niche,
+can be replaced by a product or provider feature, or could be better or cheaper another way. It ends with an assumption register
+with expiry dates.
+
+```
+/stale-check the plan in docs/roadmap.md
+```
